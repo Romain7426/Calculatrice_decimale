@@ -1,0 +1,329 @@
+
+static void decimal__mantisse__double(decimal_env_t * decimal_env, uint8_t * mantisse, const uint8_t mantisse_size, uint8_t * empty_huh_r, uint8_t * infinity_huh_r) { 
+  uint8_t d_last_index; 
+  uint8_t d_first_index; 
+  decimal_mantisse__get_last_and_first_indexes(mantisse, mantisse_size, MANTISSE_ENDS__ZERO__IGNORE_BOTH__MASK, &d_last_index, &d_first_index, empty_huh_r); 
+  if (*empty_huh_r) return; 
+  
+  if (d_last_index < (mantisse_size - 1)) { // No overflow could happen. 
+    if (infinity_huh_r != NULL) { *infinity_huh_r = false; }; 
+    
+    uint8_t d_index = d_first_index; 
+    uint8_t retenue = 0; 
+    for (;;) { 
+      const uint8_t d_v = *(mantisse + d_index); 
+      const uint16_t v = (((uint16_t)d_v) << 1) + ((uint16_t) retenue); 
+      if (v < DECIMAL_BASE) { 
+	*(mantisse + d_index) = v; 
+	retenue = 0; 
+      } 
+      else { 
+	*(mantisse + d_index) = v - DECIMAL_BASE; 
+	retenue = 1; 
+      }; 
+      d_index++; 
+      if (d_index > d_last_index) { 
+	if (0 == retenue) break; 
+	*(mantisse + d_index) = 1; 
+	break; 
+      }; 
+    }; 
+    return; 
+  }; 
+  
+  assert(d_last_index == (mantisse_size - 1)); // Overflow could happen. 
+  { 
+    uint8_t d_index = d_first_index; 
+    uint8_t retenue = 0; 
+    for (;;) { 
+      const uint8_t d_v = *(mantisse + d_index); 
+      const uint16_t v = (((uint16_t)d_v) << 1) + ((uint16_t) retenue); 
+      if (v < DECIMAL_BASE) { 
+	*(mantisse + d_index) = v; 
+	retenue = 0; 
+      } 
+      else { 
+	*(mantisse + d_index) = v - DECIMAL_BASE; 
+	retenue = 1; 
+      }; 
+      d_index++; 
+      if (d_index > d_last_index) { 
+	if (infinity_huh_r != NULL) { *infinity_huh_r = (0 != retenue); }; 
+	break; 
+      }; 
+    }; 
+    return; 
+  }; 
+  assert(false); 
+}; 
+
+
+RETURN_TYPE_T decimal__add_aux_identical_r(decimal_env_t * decimal_env, decimal_t * d_r) { 
+  const uint8_t d_status = (*d_r)[DECIMAL_STATUS_INDEX]; 
+  goto label__start; 
+  
+ label__exit: { 
+#ifdef RETURN_ERROR 
+    return DECIMAL__OK; 
+#else 
+    return d_r; 
+#endif 
+  };
+
+ label__error__number_was_empty: { 
+    decimal_env -> error_id = DECIMAL__NUMBER_WAS_EMPTY; 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Number was empty"); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+  }; 
+
+  label__start: {}; 
+  if (d_status == DECIMAL_STATUS__INVALID    ) goto label__exit; 
+  if (d_status == DECIMAL_STATUS__INFINI     ) goto label__exit; 
+  if (d_status == DECIMAL_STATUS__ZERO       ) goto label__exit; 
+  if (d_status == DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE) goto label__exit; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+  if (d_status == DECIMAL_STATUS__NEG_INFINI ) goto label__exit; 
+  if (d_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+  if (d_status == DECIMAL_STATUS__NEG_EPSILON) goto label__exit; 
+  // --- 
+  assert(d_status == DECIMAL_STATUS__POS || d_status == DECIMAL_STATUS__NEG); 
+  
+  uint8_t * mantisse = &((*d_r)[DECIMAL_DIGITS_INDEX_FIRST]); 
+  const uint8_t mantisse_size = DECIMAL_DIGITS_SIZE; 
+  uint8_t empty_huh; 
+  uint8_t infinity_huh; 
+  decimal__mantisse__double(decimal_env, mantisse, mantisse_size, &empty_huh, &infinity_huh); 
+  
+  if (empty_huh) { goto label__error__number_was_empty; }; 
+  
+  if (infinity_huh) { 
+    (*d_r)[DECIMAL_STATUS_INDEX] = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__POS_INFINI : DECIMAL_STATUS__NEG_INFINI; 
+    goto label__exit; 
+  }; 
+  
+  goto label__exit; 
+  
+  assert(false); 
+}; 
+
+RETURN_TYPE_T decimal__add_r(decimal_env_t * decimal_env, decimal_t * d_r, const decimal_t * e_r) { 
+  if (d_r == e_r) return decimal__add_aux_identical_r(decimal_env, d_r); 
+  const uint8_t d_status = (*d_r)[DECIMAL_STATUS_INDEX]; 
+  if (d_status == DECIMAL_STATUS__INVALID    ) goto label__exit; 
+  if (d_status == DECIMAL_STATUS__INFINI     ) goto label__exit; 
+  if (d_status == DECIMAL_STATUS__ZERO       ) { bcopy(e_r, d_r, DECIMAL_SIZE); goto label__exit; }; 
+  if (d_status == DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE) goto label__exit; 
+  const uint8_t e_status = (*e_r)[DECIMAL_STATUS_INDEX]; 
+  if (e_status == DECIMAL_STATUS__INVALID    ) { (*d_r)[0] = DECIMAL_STATUS__INVALID; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__INFINI     ) { (*d_r)[0] = DECIMAL_STATUS__INFINI ; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__ZERO       ) {                                      goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE) { (*d_r)[0] = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__POS_INFINI  && e_status == DECIMAL_STATUS__NEG_INFINI ) { (*d_r)[0] = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+  if (d_status == DECIMAL_STATUS__NEG_INFINI  && e_status == DECIMAL_STATUS__POS_INFINI ) { (*d_r)[0] = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+  if (d_status == DECIMAL_STATUS__POS_EPSILON && e_status == DECIMAL_STATUS__NEG_EPSILON) { (*d_r)[0] = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+  if (d_status == DECIMAL_STATUS__NEG_EPSILON && e_status == DECIMAL_STATUS__POS_EPSILON) { (*d_r)[0] = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+  if (d_status == DECIMAL_STATUS__NEG_INFINI ) goto label__exit; 
+  if (e_status == DECIMAL_STATUS__POS_INFINI ) { (*d_r)[0] = DECIMAL_STATUS__POS_INFINI; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__NEG_INFINI ) { (*d_r)[0] = DECIMAL_STATUS__NEG_INFINI; goto label__exit; }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__POS_EPSILON && e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+  if (d_status == DECIMAL_STATUS__NEG_EPSILON && e_status == DECIMAL_STATUS__NEG_EPSILON) goto label__exit; 
+  if (d_status == DECIMAL_STATUS__POS_EPSILON) { bcopy(e_r, d_r, DECIMAL_SIZE); goto label__exit; }; 
+  if (d_status == DECIMAL_STATUS__NEG_EPSILON) { bcopy(e_r, d_r, DECIMAL_SIZE); goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+  if (e_status == DECIMAL_STATUS__NEG_EPSILON) goto label__exit; 
+  // --- 
+  if (!(d_status == DECIMAL_STATUS__POS || d_status == DECIMAL_STATUS__NEG)) goto error_label__missing_status_case_for_d; 
+  if (!(e_status == DECIMAL_STATUS__POS || e_status == DECIMAL_STATUS__NEG)) goto error_label__missing_status_case_for_e; 
+  // --- 
+  const uint8_t same_sign = (d_status == e_status); 
+  
+  if (same_sign) goto label__same_sign; 
+  else goto label__opposite_sign; 
+
+
+  label__same_sign: { 
+    decimal_mantisse__EOF2ZERO_r(d_r); 
+    int index = DECIMAL_DIGITS_INDEX; 
+    index--; 
+    for (;;) { 
+      index++; 
+      if (index >= DECIMAL_DIGITS_INDEX_XLAST) goto error_label__malformed_number; 
+      if ((*e_r)[index] == DECIMAL_EOF_BYTE) continue; 
+      break; 
+    }; 
+    uint8_t retenue = 0; 
+    for (;;) { 
+      const uint16_t v = (*d_r)[index] + (*e_r)[index] + retenue; 
+      if (v < DECIMAL_BASE) { 
+	(*d_r)[index] = v; 
+      }
+      else { 
+	(*d_r)[index] = v - DECIMAL_BASE; 
+	retenue = 1; 
+      }; 
+      index++; 
+      if (index >= DECIMAL_DIGITS_INDEX_XLAST) break; 
+      if ((*e_r)[index] == DECIMAL_EOF_BYTE) break; 
+    }; 
+    // Normalization 
+    { 
+      decimal_mantisse__ZERO2EOF_right_r(d_r); 
+      decimal_mantisse__ZERO2EOF_left_r(d_r); 
+      decimal_status__if_ZERO_then_set_status_r(d_r); 
+    }; 
+    goto label__exit; 
+  }; 
+  
+  
+  // Not same sign => substraction 
+ label__opposite_sign: { 
+    decimal_mantisse__EOF2ZERO_right_r(d_r); 
+    int index = DECIMAL_DIGITS_INDEX; 
+    index--; 
+    for (;;) { 
+      index++; 
+      if (index >= DECIMAL_DIGITS_INDEX_XLAST) goto error_label__malformed_number; 
+      if ((*e_r)[index] == DECIMAL_EOF_BYTE) continue; 
+      break; 
+    }; 
+    uint8_t retenue = 0; 
+    for (;;) { 
+      const uint8_t e_v = (*e_r)[index]; 
+      if ((e_v == DECIMAL_EOF_BYTE) && (retenue == 0)) break; 
+      const uint8_t u = ((e_v == DECIMAL_EOF_BYTE) ? 0 : e_v) + retenue; 
+      if ((*d_r)[index] != DECIMAL_EOF_BYTE) { 
+	if (u > (*d_r)[index]) { 
+	  (*d_r)[index] += (DECIMAL_BASE - u); 
+	  retenue = 1; 
+	} 
+	else { 
+	  (*d_r)[index] -= u; 
+	  retenue = 0; 
+	}; 
+	index++; 
+	if (index >= DECIMAL_DIGITS_INDEX_XLAST) break; 
+	continue; 
+      }; 
+
+      //assert((*d_r)[index] == DECIMAL_EOF_BYTE);
+      { 
+	// There's nothing left in 'd', but we still have digits to substract to 'd'. 
+	//  ==> e > d 
+	// ENG: If the algorithm goes on, then we will compute the nine-complement: 0008 - 0017 = 9991, instead of -9 
+	//      So we need to copy the left part of e, compute the 10-complement on the right part, and change the sign of d. 
+	//      In case of a non-null retenue (0007 - 0008 = 9999), the retenue should be dropped. 
+	//      In case of a null retenue (0008 - 1007 = 9001 = -0999), the left part of e should be decremented by one before being copied into d. 
+	const uint8_t base = index; 
+	// FIRST: Copy the adjusted left part of 'e' into 'd'. 
+	if (1 == retenue) { 
+	  for (;;) { 
+	    if ((*e_r)[index] == DECIMAL_EOF_BYTE) break; 
+	    (*d_r)[index] = (*e_r)[index]; 
+	    index++; 
+	    if (index >= DECIMAL_DIGITS_INDEX_XLAST) break; 
+	  }; 
+	} 
+	else { 
+	  // As 'retenue' is null, the current digit of 'e' is not EOF. 
+	  // As 'retenue' is null, we want to decrement the left part of 'e' by one. 
+	  // If the current digit of 'e' is not zero, no problem; if it is, then we need to skip them. 
+	  for (;;) { 
+	    if ((*e_r)[index] != 0) break; 
+	    (*d_r)[index] = DECIMAL_BASE - 1; 
+	    index++; 
+	    if (index >= DECIMAL_DIGITS_INDEX_XLAST) goto error_label__malformed_number; // The whole left part of 'e' is made of zeroes…? 
+	  }; 
+	  //if (index >= DECIMAL_DIGITS_INDEX_XLAST) goto error_label__malformed_number; // Impossible case, as it should have been detected beforehand.  
+	  if ((*e_r)[index] >= DECIMAL_EOF_BYTE) goto error_label__malformed_number; // The whole left part of 'e' is made of zeroes…? 
+	  (*d_r)[index] = (*e_r)[index] - 1; 
+	  index++; 
+	  for (;;) { 
+	    if (index >= DECIMAL_DIGITS_INDEX_XLAST) break; 
+	    if ((*e_r)[index] == DECIMAL_EOF_BYTE) break; 
+	    (*d_r)[index] = (*e_r)[index]; 
+	    index++; 
+	  }; 
+	}; 
+	// SECOND: Compute the 10-complement on the right part of 'd'. 
+	{ 
+	  index = DECIMAL_DIGITS_INDEX; 
+	  for (;;) { 
+	    (*d_r)[index] = DECIMAL_BASE - (*d_r)[index]; 
+	    index++; 
+	    if (index == base) break; 
+	  }; 
+	}; 
+	// THIRD: Adjust the sign of 'd'. 
+	(*d_r)[DECIMAL_STATUS_INDEX] = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__NEG : DECIMAL_STATUS__POS; 
+	// FOURTH: Nothing left to do. 
+	break; 
+      }; 
+    }; 
+    
+    // Normalization 
+    // In both cases ('d' > 'e' & 'd' < 'e'), the left part of 'd' is already normalized. 
+    decimal_mantisse__ZERO2EOF_right_r(d_r); 
+    // Still, 'd' could be zero. 
+    decimal_status__if_ZERO_then_set_status_r(d_r); 
+    
+    goto label__exit; 
+  }; 
+  
+  assert(false); 
+  
+ label__exit: { 
+#ifdef RETURN_ERROR 
+    return DECIMAL__OK; 
+#else 
+    return d_r; 
+#endif 
+  };
+
+ error_label__missing_status_case_for_d: { 
+    const char * status_cstr = decimal_status__cstr(d_status); 
+    decimal_env -> error_id = DECIMAL__STATUS_NOT_LISTED_IN_SWITCH; 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Status of 'd' not listed in switch: %d [%s]", ((int)e_status), status_cstr); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+  }; 
+
+ error_label__missing_status_case_for_e: { 
+    const char * status_cstr = decimal_status__cstr(e_status); 
+    decimal_env -> error_id = DECIMAL__STATUS_NOT_LISTED_IN_SWITCH; 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Status of 'e' not listed in switch: %d [%s]", ((int)e_status), status_cstr); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+  }; 
+
+ error_label__malformed_number: { 
+    decimal_env -> error_id = DECIMAL__MALFORMED_NUMBER; 
+    //snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Malformed number: index = %d — char = %u", (int)index, ((unsigned int)(*d_r)[index])); 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Malformed number"); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+  }; 
+
+}; 
+

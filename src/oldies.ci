@@ -1,0 +1,1415 @@
+
+
+
+
+
+
+
+
+
+
+static int_decimal_error_t decimal__div_r__aux(decimal_t * d_r, const decimal_t * e_r, decimal_t * c_r, const uint8_t normalize_c_huh) { 
+  uint8_t       * d = *d_r; 
+  const uint8_t * e = *e_r; 
+  const uint8_t d_status = *d; 
+  const uint8_t e_status = *e; 
+  if (d_status == DECIMAL_STATUS__INVALID    ) goto label__exit; 
+  if (e_status == DECIMAL_STATUS__INVALID    ) { *d = DECIMAL_STATUS__INVALID; goto label__exit; }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE) goto label__exit; 
+  if (e_status == DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__INFINI) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) goto label__exit; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__POS_INFINI) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) { *d = DECIMAL_STATUS__NEG_INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = DECIMAL_STATUS__NEG_INFINI; goto label__exit; }; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__NEG_INFINI) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) { *d = DECIMAL_STATUS__POS_INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = DECIMAL_STATUS__POS_INFINI; goto label__exit; }; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__ZERO) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) goto label__exit; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__POS_EPSILON) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = DECIMAL_STATUS__NEG_EPSILON; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) { *d = DECIMAL_STATUS__NEG_EPSILON; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__NEG_EPSILON) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = DECIMAL_STATUS__POS_EPSILON; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) { *d = DECIMAL_STATUS__POS_EPSILON; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    assert(false); 
+  }; 
+  // --- 
+  assert(d_status == DECIMAL_STATUS__POS || d_status == DECIMAL_STATUS__NEG); 
+  // --- 
+  if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__ZERO  ; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__POS_INFINI ) { *d = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__POS_EPSILON : DECIMAL_STATUS__NEG_EPSILON; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__NEG_EPSILON : DECIMAL_STATUS__POS_EPSILON; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__POS_EPSILON) { *d = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__POS_INFINI  : DECIMAL_STATUS__NEG_INFINI ; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__NEG_INFINI  : DECIMAL_STATUS__POS_INFINI ; goto label__exit; }; 
+  // --- 
+  assert(e_status == DECIMAL_STATUS__POS || e_status == DECIMAL_STATUS__NEG); 
+  // --- 
+  const uint8_t same_sign = (d_status == e_status); 
+  // 'd' can be decomposed according to its bytes. 
+  // Then, the division can take place on byte of 'd'. 
+  // Then, all these divisions can be added altogether. 
+  // However, the inverse of 'e' has to be computed first. 
+  // NB: We can't simply 'mult' using '1/e' as we can lose accuracy (not enough digits in the fixed-point part). 
+  
+  int d_N_index; 
+  { 
+    d_N_index = 1 + DECIMAL_FIXED_POINT_SIZE; 
+    if (*(d + d_N_index + 1) != DECIMAL_EOF_BYTE) { 
+      for (;;) { 
+	d_N_index++; 
+	if (d_N_index == DECIMAL_SIZE) goto label__error__malformed_number; 
+	if (*(d + d_N_index) == DECIMAL_EOF_BYTE) break; 
+      }; 
+      d_N_index--; 
+    } 
+    else if (*(d + d_N_index) != 0) { 
+    } 
+    else { 
+      for (;;) { 
+	d_N_index--; 
+	if (d_N_index == 0) goto label__error__malformed_number; 
+	if (*(d + d_N_index) != 0) break; 
+      }; 
+    }; 
+  };
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "d_N_index: "); dputn(STDERR_FILENO, d_N_index); write_eol(STDERR_FILENO);); 
+  
+  int e_N_index; 
+  { 
+    e_N_index = 1 + DECIMAL_FIXED_POINT_SIZE; 
+    if (*(e + e_N_index + 1) != DECIMAL_EOF_BYTE) { 
+      for (;;) { 
+	e_N_index++; 
+	if (e_N_index == DECIMAL_SIZE) goto label__error__malformed_number; 
+	if (*(e + e_N_index) == DECIMAL_EOF_BYTE) break; 
+      }; 
+      e_N_index--; 
+    } 
+    else if (*(e + e_N_index) != 0) { 
+    } 
+    else { 
+      for (;;) { 
+	e_N_index--; 
+	if (e_N_index == 0) goto label__error__malformed_number; 
+	if (*(e + e_N_index) != 0) break; 
+      }; 
+    }; 
+  };
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "e_N_index: "); dputn(STDERR_FILENO, e_N_index); write_eol(STDERR_FILENO);); 
+  
+  int N = d_N_index - e_N_index; 
+  { 
+    int d_index = d_N_index; 
+    int e_index = e_N_index; 
+    for (;;) { 
+      const uint8_t d_v = *(d + d_index); 
+      const uint8_t e_v = *(e + e_index); 
+      if (e_v == DECIMAL_EOF_BYTE) break; 
+      if (d_v == DECIMAL_EOF_BYTE) { N-- ; break; }; 
+      if (d_v > e_v) break; 
+      if (d_v < e_v) { N--; break; }; 
+      d_index--; 
+      e_index--; 
+      if (d_index == 0) { 
+	if (e_index == 0) break; 
+	const uint8_t e_v2 = *(e + e_index); 
+	if (e_v2 == DECIMAL_EOF_BYTE) break; 
+	if (e_v2 != 0) { N--; break; }; 
+	if (e_index != 1 + DECIMAL_FIXED_POINT_SIZE) { N--; break; }; 
+	if (*(e + e_index - 1) == DECIMAL_EOF_BYTE) break; 
+	N--; break; 
+      }; 
+      if (e_index == 0) break; 
+    }; 
+  }; 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "N: "); dputn(STDERR_FILENO, N); write_eol(STDERR_FILENO);); 
+  
+  decimal_t shifted_e; 
+  bcopy(e, shifted_e, DECIMAL_SIZE); 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e = "); decimal__print_debug_ln_r(STDERR_FILENO, &shifted_e);); 
+  if (N == 0) { } 
+  else if (N > 0) { 
+    bcopy(((char *)shifted_e) + 1, ((char *)shifted_e) + 1 + N, DECIMAL_SIZE - 1 - N); 
+    memset(((char *)shifted_e) + 1, DECIMAL_EOF_BYTE, N); 
+    //bzero(((char *)shifted_e) + 1, shift100); 
+  } 
+  else { 
+    const int POS_N = -N; 
+    bcopy(((char *)shifted_e) + 1 + POS_N, ((char *)shifted_e) + 1, DECIMAL_SIZE - 1 - POS_N); 
+    memset(((char *)shifted_e) + DECIMAL_SIZE - POS_N, DECIMAL_EOF_BYTE, POS_N); 
+    //bzero(((char *)shifted_e) + DECIMAL_SIZE - POS_N, POS_N); 
+  };   
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e = "); decimal__print_debug_ln_r(STDERR_FILENO, &shifted_e);); 
+  const uint8_t shifted_e_N_index = e_N_index + N; 
+  if (d_N_index == shifted_e_N_index) { } 
+  else if (d_N_index < shifted_e_N_index) { assert(false); } 
+  else { 
+    const uint8_t N_diff = d_N_index - shifted_e_N_index; 
+    bzero(((char *)shifted_e) + shifted_e_N_index + 1, N_diff); 
+  }; 
+  //DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e = "); decimal__print_ln_r(STDERR_FILENO, &shifted_e);); 
+  //DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e = "); decimal__print_raw_r(STDERR_FILENO, &shifted_e); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e = "); decimal__print_debug_ln_r(STDERR_FILENO, &shifted_e);); 
+#if 0 
+  assert(shifted_e[d_N_index] != DECIMAL_EOF_BYTE); 
+  assert(shifted_e[d_N_index] != 0); 
+  assert(shifted_e[d_N_index + 1] == DECIMAL_EOF_BYTE); 
+#endif 
+  
+  decimal_t shifted_e_digit_tab[DECIMAL_BASE]; 
+  for (int i = 0; i < DECIMAL_BASE; i++) { 
+    bcopy(shifted_e, shifted_e_digit_tab[i], DECIMAL_SIZE); 
+  }; 
+  int f_base = 1; 
+  for (;;) { 
+    const uint8_t f_v = *(((char *)shifted_e) + f_base); 
+    if (f_v != DECIMAL_EOF_BYTE && f_v != 0) break; 
+    f_base++; 
+    if (f_base == DECIMAL_SIZE) goto label__error__malformed_number; 
+  }; 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "f_base: "); dputn(STDERR_FILENO, f_base); write_eol(STDERR_FILENO);); 
+  shifted_e_digit_tab[0][0] = DECIMAL_STATUS__ZERO; 
+  for (uint16_t i = 2; i < DECIMAL_BASE; i++) { 
+    DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "i: "); dputn(STDERR_FILENO, i); write_eol(STDERR_FILENO);); 
+    uint8_t * f = &(shifted_e_digit_tab[i][0]); 
+    int f_index = f_base; 
+    uint16_t f_retenue = 0; 
+    for (;;) { 
+      DEBUG_STATEMENT(100,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "f_index: "); dputn(STDERR_FILENO, f_index); write_eol(STDERR_FILENO);); 
+      DEBUG_STATEMENT(100,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "f_retenue: "); dputn(STDERR_FILENO, f_retenue); write_eol(STDERR_FILENO);); 
+      const uint16_t f_v = *(f + f_index); 
+      if (f_v == DECIMAL_EOF_BYTE) { 
+	if (f_retenue != 0) *(f + f_index) = f_retenue; 
+	break; 
+      }; 
+      const uint16_t m_v = f_v * i + f_retenue; 
+      *(f + f_index) = m_v % 100; 
+      f_retenue = m_v / 100; 
+      f_index++; 
+      if (f_index == DECIMAL_SIZE) { if (f_retenue != 0) goto label__e_is_pos_infinity; break; }; 
+    }; 
+    f_index = f_base; 
+    for (;;) { 
+      if (0 != *(f + f_index)) break; 
+      *(f + f_index) = DECIMAL_EOF_BYTE; 
+      f_index++; 
+      if (f_index == DECIMAL_SIZE) goto label__error__internal; 
+    }; 
+    f_index = DECIMAL_SIZE; 
+    for (;;) { 
+      f_index--; 
+      if (f_index == 0) goto label__error__internal; 
+      if (DECIMAL_EOF_BYTE == *(f + f_index)) continue; 
+      if (0 != *(f + f_index)) break; 
+      *(f + f_index) = DECIMAL_EOF_BYTE; 
+    }; 
+    DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_digit_tab["); dputn(STDERR_FILENO, i); write_string(STDERR_FILENO, "] = "); decimal__print_debug_ln_r(STDERR_FILENO, &shifted_e_digit_tab[i]);); 
+    //DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_digit_tab[i] = "); decimal__print_debug_ln_r(STDERR_FILENO, &shifted_e_digit_tab[i]);); 
+    //DEBUG_STATEMENT(1000,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_digit_tab[i] = "); decimal__print_raw_r(STDERR_FILENO, &shifted_e_digit_tab[i]); write_eol(STDERR_FILENO);); 
+  }; 
+  int lookedup_index_max = 0; //DECIMAL_BASE -1; 
+  for (;;) { 
+    lookedup_index_max++; 
+    if (lookedup_index_max == DECIMAL_BASE) break; 
+#if 1 
+    uint8_t * f = &(shifted_e_digit_tab[lookedup_index_max][0]); 
+    if (*(f + shifted_e_N_index + 1) == DECIMAL_EOF_BYTE) { continue; }; 
+    if (*(f + shifted_e_N_index + 1) == 0) continue; 
+#else 
+    const uint8_t * f = &(shifted_e_digit_tab[lookedup_index_max][0]); 
+    if (*(f + shifted_e_N_index + 1) == DECIMAL_EOF_BYTE) { *(f + shifted_e_N_index + 1) = 0; continue; }; 
+    //if (*(f + shifted_e_N_index + 1) == 0) continue; 
+#endif 
+    break; 
+  }; 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "lookedup_index_max: "); dputn(STDERR_FILENO, lookedup_index_max); write_eol(STDERR_FILENO);); 
+
+  int lookedup_index_max2 = lookedup_index_max - 1; 
+  for (;;) { 
+    lookedup_index_max2++; 
+    if (lookedup_index_max2 == DECIMAL_BASE) break; 
+    const uint8_t * f = &(shifted_e_digit_tab[lookedup_index_max2][0]); 
+    if (*(f + shifted_e_N_index + 2) == DECIMAL_EOF_BYTE) continue; 
+#if 0 
+    if (*(f + shifted_e_N_index + 2) == 0) continue; 
+#endif 
+    break; 
+  }; 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "lookedup_index_max2: "); dputn(STDERR_FILENO, lookedup_index_max2); write_eol(STDERR_FILENO);); 
+  
+  //uint8_t c_digits[DECIMAL_SIZE]; 
+  uint8_t * c_digits = *(c_r); 
+  int c_index = DECIMAL_SIZE - 1; 
+  decimal_t dividende; 
+  bcopy(d, dividende, DECIMAL_SIZE); 
+  uint8_t * g = &(dividende[0]); 
+  for (;;) { 
+    // iterated substraction 
+    int lookup_index; 
+    // What should we substract? 
+    { 
+      if ((*(g + d_N_index + 1) != DECIMAL_EOF_BYTE) && *(g + d_N_index + 1) != 0) { 
+	lookup_index = lookedup_index_max; 
+	for (;;) { 
+	  const uint8_t * f = &(shifted_e_digit_tab[lookup_index][0]); 
+	  int greater_huh = false; 
+	  { 
+	    int g_index = d_N_index + 1; 
+	    int f_index = d_N_index + 1; //shifted_e_N_index; 
+	    for (;;) { 
+	      const uint8_t g_v = *(g + g_index); 
+	      const uint8_t f_v = *(f + f_index); 
+	      if (f_v == DECIMAL_EOF_BYTE) { if (g_v == DECIMAL_EOF_BYTE) { lookup_index++; greater_huh = true; }; break; }; 
+	      if (g_v == DECIMAL_EOF_BYTE) { greater_huh = true; break; }; 
+	      if (g_v > f_v) break; 
+	      if (g_v < f_v) { greater_huh = true; break; }; 
+	      g_index--; 
+	      f_index--; 
+	      if (g_index == 0) { lookup_index++; greater_huh = true; break; }; 
+	    }; 
+	  };
+	  if (greater_huh) break; 
+	  lookup_index++; 
+	  if (lookup_index == lookedup_index_max2) break; 
+	}; 
+	lookup_index--; 
+      } 
+      else if ((*(g + d_N_index) != DECIMAL_EOF_BYTE) && *(g + d_N_index) != 0) { 
+	int g_index0; 
+	int f_index0; 
+	if ((shifted_e[d_N_index] == DECIMAL_EOF_BYTE) || (shifted_e[d_N_index] == 0)) { 
+	//DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string_ln(STDERR_FILENO, "*************HERE*******************");); 
+	  lookup_index = lookedup_index_max; 
+	//DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_digit_tab[lookup_index] = "); decimal__print_debug_ln_r(STDERR_FILENO, &shifted_e_digit_tab[lookup_index]);); 
+	//DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_digit_tab[lookup_index] = "); decimal__print_raw_r(STDERR_FILENO, &shifted_e_digit_tab[lookup_index]); write_eol(STDERR_FILENO);); 
+	  g_index0 = d_N_index; 
+	  f_index0 = d_N_index; //shifted_e_N_index; 
+	} 
+	else { 
+	  lookup_index = 1; 
+	  g_index0 = d_N_index; 
+	  f_index0 = d_N_index; //shifted_e_N_index; 
+	}; 
+	for (;;) { 
+	  const uint8_t * f = &(shifted_e_digit_tab[lookup_index][0]); 
+	  int greater_huh = false; 
+	  { 
+	    int g_index = g_index0; 
+	    int f_index = f_index0; 
+	    for (;;) { 
+	      const uint8_t g_v = *(g + g_index); 
+	      const uint8_t f_v = *(f + f_index); 
+	      if (f_v == DECIMAL_EOF_BYTE) { if (g_v == DECIMAL_EOF_BYTE) { lookup_index++; greater_huh = true; }; break; }; 
+	      if (g_v == DECIMAL_EOF_BYTE) { greater_huh = true; break; }; 
+	      if (g_v > f_v) break; 
+	      if (g_v < f_v) { greater_huh = true; break; }; 
+	      g_index--; 
+	      f_index--; 
+	      if (g_index == 0) { lookup_index++; greater_huh = true; break; }; 
+	    }; 
+	  };
+	  if (greater_huh) break; 
+	  lookup_index++; 
+	  if (lookup_index == lookedup_index_max2) break; 
+	}; 
+	lookup_index--; 
+      } 
+      else { 
+	// *(g + d_N_index + 1) is null 
+	// *(g + d_N_index + 0) is null 
+	if ((shifted_e[d_N_index] != DECIMAL_EOF_BYTE) && (shifted_e[d_N_index] != 0)) { 
+	  lookup_index = 1; 
+	} 
+	else { 
+	  lookup_index = 1; 
+	  for (;;) { 
+	    const uint8_t * f = &(shifted_e_digit_tab[lookup_index][0]); 
+	    int greater_huh = false; 
+	    { 
+	      int g_index = d_N_index - 1; 
+	      int f_index = d_N_index - 1; //shifted_e_N_index; 
+	      for (;;) { 
+		const uint8_t g_v = *(g + g_index); 
+		const uint8_t f_v = *(f + f_index); 
+		if (f_v == DECIMAL_EOF_BYTE) { if (g_v == DECIMAL_EOF_BYTE) { lookup_index++; greater_huh = true; }; break; }; 
+		if (g_v == DECIMAL_EOF_BYTE) { greater_huh = true; break; }; 
+		if (g_v > f_v) break; 
+		if (g_v < f_v) { greater_huh = true; break; }; 
+		g_index--; 
+		f_index--; 
+		if (g_index == 0) { lookup_index++; greater_huh = true; break; }; 
+	      }; 
+	    };
+	    if (greater_huh) break; 
+	    lookup_index++; 
+	    if (lookup_index == lookedup_index_max) break; 
+	  }; 
+	};
+	lookup_index--; 
+      };
+    }; 
+    DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "dividende = "); decimal__print_debug_ln_r(STDERR_FILENO, &dividende);); 
+    DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "lookup_index: "); dputn(STDERR_FILENO, lookup_index); write_eol(STDERR_FILENO);); 
+    // digit 
+    c_digits[c_index] = lookup_index; 
+    c_index--; 
+    //if (c_index == 240) break; 
+    if (c_index == 0) break; 
+    // sub 
+    if (lookup_index > 0 ) { 
+      const uint8_t * f = &(shifted_e_digit_tab[lookup_index][0]); 
+      DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_digit_tab[lookup_index] = "); decimal__print_debug_ln_r(STDERR_FILENO, &(shifted_e_digit_tab[lookup_index]));); 
+      int fg_index = 1; 
+      for (;;) { 
+	const uint8_t f_v = *(f + fg_index); 
+	if (f_v != DECIMAL_EOF_BYTE) break; 
+	fg_index++; 
+	if (fg_index == DECIMAL_SIZE) goto label__error__malformed_number; 
+      }; 
+      fg_index--; 
+      uint8_t retenue = 0; 
+      for (;;) { 
+	fg_index++; 
+	//if (fg_index > d_N_index) break; 
+	if (fg_index == DECIMAL_SIZE) goto label__error__malformed_number; 
+	const uint8_t g_v = *(g + fg_index); 
+	const uint8_t f_v = *(f + fg_index); 
+	if (f_v == DECIMAL_EOF_BYTE) { 
+	  if (0 == retenue) break; 
+	  if (g_v == DECIMAL_EOF_BYTE) goto label__error__internal; 
+	  if (g_v > 0) { (*(g + fg_index)) --; break; }; 
+	  if (*(g + fg_index + 1) == DECIMAL_EOF_BYTE) goto label__error__internal; 
+	  if (*(g + fg_index + 1) == 0) goto label__error__internal; 
+	  (*(g + fg_index + 1)) --; 
+	  break; 
+	}; 
+	if (g_v == DECIMAL_EOF_BYTE) { 
+	  *(g + fg_index) = 100 - f_v - retenue; 
+	  retenue = 1; 
+	  continue; 
+	}; 
+	*(g + fg_index) += -f_v - retenue + ((g_v < f_v) ? 100 : 0); 
+	retenue = ((g_v < f_v) ? 1 : 0); 
+      }; 
+      DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "dividende = "); decimal__print_debug_ln_r(STDERR_FILENO, &dividende);); 
+#if 0 
+      if (0 == *(g + g_index)) { 
+	*(g + d_N_index + 1) = DECIMAL_EOF_BYTE; 
+      }; 
+#elif 1  
+      { 
+	int g_index = d_N_index + 2; 
+	for (;;) { 
+	  g_index--; 
+	  //DEBUG_STATEMENT(1000,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "g_index: "); dputn(STDERR_FILENO, g_index);  write_string(STDERR_FILENO, " - *(g + g_index) =  "); dputn(STDERR_FILENO, *(g + g_index)); write_eol(STDERR_FILENO);); 
+	  if (g_index == 0) break; 
+	  if (DECIMAL_EOF_BYTE == *(g + g_index)) continue; 
+	  if (0 == *(g + g_index)) { 
+	    *(g + g_index) = DECIMAL_EOF_BYTE; 
+	    continue; 
+	  }; 
+	  break; 
+	}; 
+      }; 
+#else 
+      // Normalization of 'dividende' 
+      for (;;) { 
+	fg_index--; 
+      }; 
+#endif 
+    }; 
+    DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "dividende = "); decimal__print_debug_ln_r(STDERR_FILENO, &dividende);); 
+    // 'dividende' is zero? 
+    { 
+      int g_index = 0; 
+      int is_zero_huh = true; 
+      for (;;) { 
+	g_index++; 
+	if (g_index > d_N_index) break; 
+	if (g_index == DECIMAL_SIZE) goto label__error__malformed_number; 
+	const uint8_t g_v = *(g + g_index); 
+	if (g_v == DECIMAL_EOF_BYTE) continue; 
+	if (g_v == 0) continue; 
+	is_zero_huh = false; 
+	break; 
+      }; 
+      if (is_zero_huh) break; 
+    }; 
+    // shifting 'dividende' 
+    { 
+      bcopy(g + 1, g + 2, DECIMAL_SIZE - 2); 
+      *(g + 1) = DECIMAL_EOF_BYTE; 
+      if (0 == *(g + d_N_index + 1)) *(g + d_N_index + 1) = DECIMAL_EOF_BYTE; 
+    }; 
+    DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "dividende = "); decimal__print_debug_ln_r(STDERR_FILENO, &dividende);); 
+    //DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "dividende = "); decimal__print_raw_r(STDERR_FILENO, &dividende); write_eol(STDERR_FILENO);); 
+  }; 
+  const uint8_t c_len = DECIMAL_SIZE - 1 - c_index; 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "c_len: "); dputn(STDERR_FILENO, c_len); write_eol(STDERR_FILENO);); 
+  
+  // Writing the result into 'd' 
+  *d = same_sign ? DECIMAL_STATUS__POS : DECIMAL_STATUS__NEG; 
+  const uint8_t c_N_index = N + 1 + DECIMAL_FIXED_POINT_SIZE; 
+  if (normalize_c_huh) { 
+    if (0 == N) { 
+      *c_digits = same_sign ? 1 : -1; 
+    } 
+    else { 
+      *c_digits = same_sign ? N : -N; 
+    }; 
+    for (int i = 1; i <= c_index; i++) { 
+      c_digits[i] = 0; 
+    }; 
+  }; 
+  { 
+    int d_index = DECIMAL_SIZE; 
+    for (;;) { 
+      d_index--; 
+      if (d_index == c_N_index) break; 
+      *(d + d_index) = DECIMAL_EOF_BYTE; 
+    }; 
+    const uint8_t * c = c_digits + DECIMAL_SIZE - 1; 
+    for (int i = 0; i < c_len; i++) { 
+      *(d + d_index) = *c; 
+      c--; 
+      d_index--; 
+      if (d_index == 0) break; 
+    }; 
+    for (;;) { 
+      if (d_index < 1 + DECIMAL_FIXED_POINT_SIZE) break; 
+      *(d + d_index) = 0; 
+      d_index--; 
+    }; 
+    for (;;) { 
+      if (d_index == 0) break; 
+      *(d + d_index) = DECIMAL_EOF_BYTE; 
+      d_index--; 
+    }; 
+    d_index = 1 + DECIMAL_FIXED_POINT_SIZE; 
+    for (;;) { 
+      if (*(d + d_index) != DECIMAL_EOF_BYTE) break; 
+      *(d + d_index) = 0; 
+      d_index--; 
+      if (d_index == 0) break; 
+    }; 
+  }; 
+  //DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "d_r = "); decimal__print_raw_r(STDERR_FILENO, d_r); write_eol(STDERR_FILENO);); 
+  
+  // DONE 
+  goto label__exit; 
+  
+  
+  
+  assert(false); 
+  
+  
+  label__e_is_pos_infinity: { 
+    *d = DECIMAL_STATUS__POS_EPSILON; 
+    return DECIMAL__OK; 
+  }; 
+  
+  label__exit: 
+  return DECIMAL__OK; 
+  
+  label__error__malformed_number: { 
+    return DECIMAL__MALFORMED_NUMBER; 
+  }; 
+
+  label__error__internal: { 
+    return DECIMAL__INTERNAL_ERROR; 
+  }; 
+}; 
+
+
+
+int_decimal_error_t decimal__div_r(decimal_t * d_r, const decimal_t * e_r) { 
+  decimal_t c; 
+  return decimal__div_r__aux(d_r, e_r, &c, false); 
+}; 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int_decimal_error_t decimal__div_r__v001(decimal_t * d_r, const decimal_t * e_r) { 
+  uint8_t       * d = *d_r; 
+  const uint8_t * e = *e_r; 
+  const uint8_t d_status = *d; 
+  const uint8_t e_status = *e; 
+  if (d_status == DECIMAL_STATUS__INVALID    ) goto label__exit; 
+  if (e_status == DECIMAL_STATUS__INVALID    ) { *d = DECIMAL_STATUS__INVALID; goto label__exit; }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE) goto label__exit; 
+  if (e_status == DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__INFINI) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) goto label__exit; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__POS_INFINI) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) { *d = DECIMAL_STATUS__NEG_INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = DECIMAL_STATUS__NEG_INFINI; goto label__exit; }; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__NEG_INFINI) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) { *d = DECIMAL_STATUS__POS_INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = DECIMAL_STATUS__POS_INFINI; goto label__exit; }; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__ZERO) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) goto label__exit; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__POS_EPSILON) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = DECIMAL_STATUS__NEG_EPSILON; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) { *d = DECIMAL_STATUS__NEG_EPSILON; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__NEG_EPSILON) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = DECIMAL_STATUS__POS_EPSILON; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) { *d = DECIMAL_STATUS__POS_EPSILON; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    assert(false); 
+  }; 
+  // --- 
+  assert(d_status == DECIMAL_STATUS__POS || d_status == DECIMAL_STATUS__NEG); 
+  // --- 
+  if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__ZERO  ; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__POS_INFINI ) { *d = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__POS_EPSILON : DECIMAL_STATUS__NEG_EPSILON; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__NEG_EPSILON : DECIMAL_STATUS__POS_EPSILON; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__POS_EPSILON) { *d = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__POS_INFINI  : DECIMAL_STATUS__NEG_INFINI ; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__NEG_INFINI  : DECIMAL_STATUS__POS_INFINI ; goto label__exit; }; 
+  // --- 
+  assert(e_status == DECIMAL_STATUS__POS || e_status == DECIMAL_STATUS__NEG); 
+  // --- 
+  const uint8_t same_sign = (d_status == e_status); 
+  // 'd' can be decomposed according to its bytes. 
+  // Then, the division can take place on byte of 'd'. 
+  // Then, all these divisions can be added altogether. 
+  // However, the inverse of 'e' has to be computed first. 
+  // NB: We can't simply 'mult' using '1/e' as we can lose accuracy (not enough digits in the fixed-point part). 
+  
+  int d_N_index; 
+  { 
+    d_N_index = 1 + DECIMAL_FIXED_POINT_SIZE; 
+    if (*(d + d_N_index + 1) != DECIMAL_EOF_BYTE) { 
+      for (;;) { 
+	d_N_index++; 
+	if (d_N_index == DECIMAL_SIZE) goto label__error__malformed_number; 
+	if (*(d + d_N_index) == DECIMAL_EOF_BYTE) break; 
+      }; 
+      d_N_index--; 
+    } 
+    else if (*(d + d_N_index) != 0) { 
+    } 
+    else { 
+      for (;;) { 
+	d_N_index--; 
+	if (d_N_index == 0) goto label__error__malformed_number; 
+	if (*(d + d_N_index) != 0) break; 
+      }; 
+    }; 
+  };
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "d_N_index: "); dputn(STDERR_FILENO, d_N_index); write_eol(STDERR_FILENO);); 
+  
+  int e_N_index; 
+  { 
+    e_N_index = 1 + DECIMAL_FIXED_POINT_SIZE; 
+    if (*(e + e_N_index + 1) != DECIMAL_EOF_BYTE) { 
+      for (;;) { 
+	e_N_index++; 
+	if (e_N_index == DECIMAL_SIZE) goto label__error__malformed_number; 
+	if (*(e + e_N_index) == DECIMAL_EOF_BYTE) break; 
+      }; 
+      e_N_index--; 
+    } 
+    else if (*(e + e_N_index) != 0) { 
+    } 
+    else { 
+      for (;;) { 
+	e_N_index--; 
+	if (e_N_index == 0) goto label__error__malformed_number; 
+	if (*(e + e_N_index) != 0) break; 
+      }; 
+    }; 
+  };
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "e_N_index: "); dputn(STDERR_FILENO, e_N_index); write_eol(STDERR_FILENO);); 
+  
+  int N = d_N_index - e_N_index; 
+  { 
+    int d_index = d_N_index; 
+    int e_index = e_N_index; 
+    for (;;) { 
+      const uint8_t d_v = *(d + d_index); 
+      const uint8_t e_v = *(e + e_index); 
+      if (e_v == DECIMAL_EOF_BYTE) break; 
+      if (d_v == DECIMAL_EOF_BYTE) { N-- ; break; }; 
+      if (d_v > e_v) break; 
+      if (d_v < e_v) { N--; break; }; 
+      d_index--; 
+      e_index--; 
+      if (d_index == 0) { 
+	if (e_index == 0) break; 
+	const uint8_t e_v2 = *(e + e_index); 
+	if (e_v2 == DECIMAL_EOF_BYTE) break; 
+	if (e_v2 != 0) { N--; break; }; 
+	if (e_index != 1 + DECIMAL_FIXED_POINT_SIZE) { N--; break; }; 
+	if (*(e + e_index - 1) == DECIMAL_EOF_BYTE) break; 
+	N--; break; 
+      }; 
+      if (e_index == 0) break; 
+    }; 
+  }; 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "N: "); dputn(STDERR_FILENO, N); write_eol(STDERR_FILENO);); 
+  
+  decimal_t shifted_e; 
+  bcopy(e, shifted_e, DECIMAL_SIZE); 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e = "); decimal__print_debug_ln_r(STDERR_FILENO, &shifted_e);); 
+  if (N == 0) { } 
+  else if (N > 0) { 
+    bcopy(((char *)shifted_e) + 1, ((char *)shifted_e) + 1 + N, DECIMAL_SIZE - 1 - N); 
+    memset(((char *)shifted_e) + 1, DECIMAL_EOF_BYTE, N); 
+    //bzero(((char *)shifted_e) + 1, shift100); 
+  } 
+  else { 
+    const int POS_N = -N; 
+    bcopy(((char *)shifted_e) + 1 + POS_N, ((char *)shifted_e) + 1, DECIMAL_SIZE - 1 - POS_N); 
+    memset(((char *)shifted_e) + DECIMAL_SIZE - POS_N, DECIMAL_EOF_BYTE, POS_N); 
+    //bzero(((char *)shifted_e) + DECIMAL_SIZE - POS_N, POS_N); 
+  };   
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e = "); decimal__print_debug_ln_r(STDERR_FILENO, &shifted_e);); 
+  const uint8_t shifted_e_N_index = e_N_index + N; 
+  if (d_N_index == shifted_e_N_index) { } 
+  else if (d_N_index < shifted_e_N_index) { assert(false); } 
+  else { 
+    const uint8_t N_diff = d_N_index - shifted_e_N_index; 
+    bzero(((char *)shifted_e) + shifted_e_N_index + 1, N_diff); 
+  }; 
+  //DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e = "); decimal__print_ln_r(STDERR_FILENO, &shifted_e);); 
+  //DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e = "); decimal__print_raw_r(STDERR_FILENO, &shifted_e); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e = "); decimal__print_debug_ln_r(STDERR_FILENO, &shifted_e);); 
+#if 0 
+  assert(shifted_e[d_N_index] != DECIMAL_EOF_BYTE); 
+  assert(shifted_e[d_N_index] != 0); 
+  assert(shifted_e[d_N_index + 1] == DECIMAL_EOF_BYTE); 
+#endif 
+  
+  decimal_t shifted_e_digit_tab[DECIMAL_BASE]; 
+  for (int i = 0; i < DECIMAL_BASE; i++) { 
+    bcopy(shifted_e, shifted_e_digit_tab[i], DECIMAL_SIZE); 
+  }; 
+  int f_base = 1; 
+  for (;;) { 
+    const uint8_t f_v = *(((char *)shifted_e) + f_base); 
+    if (f_v != DECIMAL_EOF_BYTE && f_v != 0) break; 
+    f_base++; 
+    if (f_base == DECIMAL_SIZE) goto label__error__malformed_number; 
+  }; 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "f_base: "); dputn(STDERR_FILENO, f_base); write_eol(STDERR_FILENO);); 
+  shifted_e_digit_tab[0][0] = DECIMAL_STATUS__ZERO; 
+  for (uint16_t i = 2; i < DECIMAL_BASE; i++) { 
+    DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "i: "); dputn(STDERR_FILENO, i); write_eol(STDERR_FILENO);); 
+    uint8_t * f = &(shifted_e_digit_tab[i][0]); 
+    int f_index = f_base; 
+    uint16_t f_retenue = 0; 
+    for (;;) { 
+      DEBUG_STATEMENT(100,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "f_index: "); dputn(STDERR_FILENO, f_index); write_eol(STDERR_FILENO);); 
+      DEBUG_STATEMENT(100,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "f_retenue: "); dputn(STDERR_FILENO, f_retenue); write_eol(STDERR_FILENO);); 
+      const uint16_t f_v = *(f + f_index); 
+      if (f_v == DECIMAL_EOF_BYTE) { 
+	if (f_retenue != 0) *(f + f_index) = f_retenue; 
+	break; 
+      }; 
+      const uint16_t m_v = f_v * i + f_retenue; 
+      *(f + f_index) = m_v % 100; 
+      f_retenue = m_v / 100; 
+      f_index++; 
+      if (f_index == DECIMAL_SIZE) { if (f_retenue != 0) goto label__e_is_pos_infinity; break; }; 
+    }; 
+    f_index = f_base; 
+    for (;;) { 
+      if (0 != *(f + f_index)) break; 
+      *(f + f_index) = DECIMAL_EOF_BYTE; 
+      f_index++; 
+      if (f_index == DECIMAL_SIZE) goto label__error__internal; 
+    }; 
+    f_index = DECIMAL_SIZE; 
+    for (;;) { 
+      f_index--; 
+      if (f_index == 0) goto label__error__internal; 
+      if (DECIMAL_EOF_BYTE == *(f + f_index)) continue; 
+      if (0 != *(f + f_index)) break; 
+      *(f + f_index) = DECIMAL_EOF_BYTE; 
+    }; 
+    DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_digit_tab["); dputn(STDERR_FILENO, i); write_string(STDERR_FILENO, "] = "); decimal__print_debug_ln_r(STDERR_FILENO, &shifted_e_digit_tab[i]);); 
+    //DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_digit_tab[i] = "); decimal__print_debug_ln_r(STDERR_FILENO, &shifted_e_digit_tab[i]);); 
+    //DEBUG_STATEMENT(1000,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_digit_tab[i] = "); decimal__print_raw_r(STDERR_FILENO, &shifted_e_digit_tab[i]); write_eol(STDERR_FILENO);); 
+  }; 
+  int lookedup_index_max = 0; //DECIMAL_BASE -1; 
+  for (;;) { 
+    lookedup_index_max++; 
+    if (lookedup_index_max == DECIMAL_BASE) break; 
+#if 1 
+    uint8_t * f = &(shifted_e_digit_tab[lookedup_index_max][0]); 
+    if (*(f + shifted_e_N_index + 1) == DECIMAL_EOF_BYTE) { continue; }; 
+    if (*(f + shifted_e_N_index + 1) == 0) continue; 
+#else 
+    const uint8_t * f = &(shifted_e_digit_tab[lookedup_index_max][0]); 
+    if (*(f + shifted_e_N_index + 1) == DECIMAL_EOF_BYTE) { *(f + shifted_e_N_index + 1) = 0; continue; }; 
+    //if (*(f + shifted_e_N_index + 1) == 0) continue; 
+#endif 
+    break; 
+  }; 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "lookedup_index_max: "); dputn(STDERR_FILENO, lookedup_index_max); write_eol(STDERR_FILENO);); 
+
+  int lookedup_index_max2 = lookedup_index_max - 1; 
+  for (;;) { 
+    lookedup_index_max2++; 
+    if (lookedup_index_max2 == DECIMAL_BASE) break; 
+    const uint8_t * f = &(shifted_e_digit_tab[lookedup_index_max2][0]); 
+    if (*(f + shifted_e_N_index + 2) == DECIMAL_EOF_BYTE) continue; 
+#if 0 
+    if (*(f + shifted_e_N_index + 2) == 0) continue; 
+#endif 
+    break; 
+  }; 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "lookedup_index_max2: "); dputn(STDERR_FILENO, lookedup_index_max2); write_eol(STDERR_FILENO);); 
+  
+  uint8_t c_digits[DECIMAL_SIZE]; 
+  int c_index = DECIMAL_SIZE - 1; 
+  decimal_t dividende; 
+  bcopy(d, dividende, DECIMAL_SIZE); 
+  uint8_t * g = &(dividende[0]); 
+  for (;;) { 
+    // iterated substraction 
+    int lookup_index; 
+    // What should we substract? 
+    { 
+      if ((*(g + d_N_index + 1) != DECIMAL_EOF_BYTE) && *(g + d_N_index + 1) != 0) { 
+	lookup_index = lookedup_index_max; 
+	for (;;) { 
+	  const uint8_t * f = &(shifted_e_digit_tab[lookup_index][0]); 
+	  int greater_huh = false; 
+	  { 
+	    int g_index = d_N_index + 1; 
+	    int f_index = d_N_index + 1; //shifted_e_N_index; 
+	    for (;;) { 
+	      const uint8_t g_v = *(g + g_index); 
+	      const uint8_t f_v = *(f + f_index); 
+	      if (f_v == DECIMAL_EOF_BYTE) { if (g_v == DECIMAL_EOF_BYTE) { lookup_index++; greater_huh = true; }; break; }; 
+	      if (g_v == DECIMAL_EOF_BYTE) { greater_huh = true; break; }; 
+	      if (g_v > f_v) break; 
+	      if (g_v < f_v) { greater_huh = true; break; }; 
+	      g_index--; 
+	      f_index--; 
+	      if (g_index == 0) { lookup_index++; greater_huh = true; break; }; 
+	    }; 
+	  };
+	  if (greater_huh) break; 
+	  lookup_index++; 
+	  if (lookup_index == lookedup_index_max2) break; 
+	}; 
+	lookup_index--; 
+      } 
+      else if ((*(g + d_N_index) != DECIMAL_EOF_BYTE) && *(g + d_N_index) != 0) { 
+	int g_index0; 
+	int f_index0; 
+	if ((shifted_e[d_N_index] == DECIMAL_EOF_BYTE) || (shifted_e[d_N_index] == 0)) { 
+	//DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string_ln(STDERR_FILENO, "*************HERE*******************");); 
+	  lookup_index = lookedup_index_max; 
+	//DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_digit_tab[lookup_index] = "); decimal__print_debug_ln_r(STDERR_FILENO, &shifted_e_digit_tab[lookup_index]);); 
+	//DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_digit_tab[lookup_index] = "); decimal__print_raw_r(STDERR_FILENO, &shifted_e_digit_tab[lookup_index]); write_eol(STDERR_FILENO);); 
+	  g_index0 = d_N_index; 
+	  f_index0 = d_N_index; //shifted_e_N_index; 
+	} 
+	else { 
+	  lookup_index = 1; 
+	  g_index0 = d_N_index; 
+	  f_index0 = d_N_index; //shifted_e_N_index; 
+	}; 
+	for (;;) { 
+	  const uint8_t * f = &(shifted_e_digit_tab[lookup_index][0]); 
+	  int greater_huh = false; 
+	  { 
+	    int g_index = g_index0; 
+	    int f_index = f_index0; 
+	    for (;;) { 
+	      const uint8_t g_v = *(g + g_index); 
+	      const uint8_t f_v = *(f + f_index); 
+	      if (f_v == DECIMAL_EOF_BYTE) { if (g_v == DECIMAL_EOF_BYTE) { lookup_index++; greater_huh = true; }; break; }; 
+	      if (g_v == DECIMAL_EOF_BYTE) { greater_huh = true; break; }; 
+	      if (g_v > f_v) break; 
+	      if (g_v < f_v) { greater_huh = true; break; }; 
+	      g_index--; 
+	      f_index--; 
+	      if (g_index == 0) { lookup_index++; greater_huh = true; break; }; 
+	    }; 
+	  };
+	  if (greater_huh) break; 
+	  lookup_index++; 
+	  if (lookup_index == lookedup_index_max2) break; 
+	}; 
+	lookup_index--; 
+      } 
+      else { 
+	// *(g + d_N_index + 1) is null 
+	// *(g + d_N_index + 0) is null 
+	if ((shifted_e[d_N_index] != DECIMAL_EOF_BYTE) && (shifted_e[d_N_index] != 0)) { 
+	  lookup_index = 1; 
+	} 
+	else { 
+	  lookup_index = 1; 
+	  for (;;) { 
+	    const uint8_t * f = &(shifted_e_digit_tab[lookup_index][0]); 
+	    int greater_huh = false; 
+	    { 
+	      int g_index = d_N_index - 1; 
+	      int f_index = d_N_index - 1; //shifted_e_N_index; 
+	      for (;;) { 
+		const uint8_t g_v = *(g + g_index); 
+		const uint8_t f_v = *(f + f_index); 
+		if (f_v == DECIMAL_EOF_BYTE) { if (g_v == DECIMAL_EOF_BYTE) { lookup_index++; greater_huh = true; }; break; }; 
+		if (g_v == DECIMAL_EOF_BYTE) { greater_huh = true; break; }; 
+		if (g_v > f_v) break; 
+		if (g_v < f_v) { greater_huh = true; break; }; 
+		g_index--; 
+		f_index--; 
+		if (g_index == 0) { lookup_index++; greater_huh = true; break; }; 
+	      }; 
+	    };
+	    if (greater_huh) break; 
+	    lookup_index++; 
+	    if (lookup_index == lookedup_index_max) break; 
+	  }; 
+	};
+	lookup_index--; 
+      };
+    }; 
+    DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "dividende = "); decimal__print_debug_ln_r(STDERR_FILENO, &dividende);); 
+    DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "lookup_index: "); dputn(STDERR_FILENO, lookup_index); write_eol(STDERR_FILENO);); 
+    // digit 
+    c_digits[c_index] = lookup_index; 
+    c_index--; 
+    //if (c_index == 240) break; 
+    if (c_index == 0) break; 
+    // sub 
+    if (lookup_index > 0 ) { 
+      const uint8_t * f = &(shifted_e_digit_tab[lookup_index][0]); 
+      DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_digit_tab[lookup_index] = "); decimal__print_debug_ln_r(STDERR_FILENO, &(shifted_e_digit_tab[lookup_index]));); 
+      int fg_index = 1; 
+      for (;;) { 
+	const uint8_t f_v = *(f + fg_index); 
+	if (f_v != DECIMAL_EOF_BYTE) break; 
+	fg_index++; 
+	if (fg_index == DECIMAL_SIZE) goto label__error__malformed_number; 
+      }; 
+      fg_index--; 
+      uint8_t retenue = 0; 
+      for (;;) { 
+	fg_index++; 
+	//if (fg_index > d_N_index) break; 
+	if (fg_index == DECIMAL_SIZE) goto label__error__malformed_number; 
+	const uint8_t g_v = *(g + fg_index); 
+	const uint8_t f_v = *(f + fg_index); 
+	if (f_v == DECIMAL_EOF_BYTE) { 
+	  if (0 == retenue) break; 
+	  if (g_v == DECIMAL_EOF_BYTE) goto label__error__internal; 
+	  if (g_v > 0) { (*(g + fg_index)) --; break; }; 
+	  if (*(g + fg_index + 1) == DECIMAL_EOF_BYTE) goto label__error__internal; 
+	  if (*(g + fg_index + 1) == 0) goto label__error__internal; 
+	  (*(g + fg_index + 1)) --; 
+	  break; 
+	}; 
+	if (g_v == DECIMAL_EOF_BYTE) { 
+	  *(g + fg_index) = 100 - f_v - retenue; 
+	  retenue = 1; 
+	  continue; 
+	}; 
+	*(g + fg_index) += -f_v - retenue + ((g_v < f_v) ? 100 : 0); 
+	retenue = ((g_v < f_v) ? 1 : 0); 
+      }; 
+      DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "dividende = "); decimal__print_debug_ln_r(STDERR_FILENO, &dividende);); 
+#if 0 
+      if (0 == *(g + g_index)) { 
+	*(g + d_N_index + 1) = DECIMAL_EOF_BYTE; 
+      }; 
+#elif 1  
+      { 
+	int g_index = d_N_index + 2; 
+	for (;;) { 
+	  g_index--; 
+	  //DEBUG_STATEMENT(1000,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "g_index: "); dputn(STDERR_FILENO, g_index);  write_string(STDERR_FILENO, " - *(g + g_index) =  "); dputn(STDERR_FILENO, *(g + g_index)); write_eol(STDERR_FILENO);); 
+	  if (g_index == 0) break; 
+	  if (DECIMAL_EOF_BYTE == *(g + g_index)) continue; 
+	  if (0 == *(g + g_index)) { 
+	    *(g + g_index) = DECIMAL_EOF_BYTE; 
+	    continue; 
+	  }; 
+	  break; 
+	}; 
+      }; 
+#else 
+      // Normalization of 'dividende' 
+      for (;;) { 
+	fg_index--; 
+      }; 
+#endif 
+    }; 
+    DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "dividende = "); decimal__print_debug_ln_r(STDERR_FILENO, &dividende);); 
+    // 'dividende' is zero? 
+    { 
+      int g_index = 0; 
+      int is_zero_huh = true; 
+      for (;;) { 
+	g_index++; 
+	if (g_index > d_N_index) break; 
+	if (g_index == DECIMAL_SIZE) goto label__error__malformed_number; 
+	const uint8_t g_v = *(g + g_index); 
+	if (g_v == DECIMAL_EOF_BYTE) continue; 
+	if (g_v == 0) continue; 
+	is_zero_huh = false; 
+	break; 
+      }; 
+      if (is_zero_huh) break; 
+    }; 
+    // shifting 'dividende' 
+    { 
+      bcopy(g + 1, g + 2, DECIMAL_SIZE - 2); 
+      *(g + 1) = DECIMAL_EOF_BYTE; 
+      if (0 == *(g + d_N_index + 1)) *(g + d_N_index + 1) = DECIMAL_EOF_BYTE; 
+    }; 
+    DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "dividende = "); decimal__print_debug_ln_r(STDERR_FILENO, &dividende);); 
+    //DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "dividende = "); decimal__print_raw_r(STDERR_FILENO, &dividende); write_eol(STDERR_FILENO);); 
+  }; 
+  const uint8_t c_len = DECIMAL_SIZE - 1 - c_index; 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "c_len: "); dputn(STDERR_FILENO, c_len); write_eol(STDERR_FILENO);); 
+  
+  // Writing the result into 'd' 
+  *d = same_sign ? DECIMAL_STATUS__POS : DECIMAL_STATUS__NEG; 
+  const uint8_t c_N_index = N + 1 + DECIMAL_FIXED_POINT_SIZE; 
+  { 
+    int d_index = DECIMAL_SIZE; 
+    for (;;) { 
+      d_index--; 
+      if (d_index == c_N_index) break; 
+      *(d + d_index) = DECIMAL_EOF_BYTE; 
+    }; 
+    const uint8_t * c = c_digits + DECIMAL_SIZE - 1; 
+    for (int i = 0; i < c_len; i++) { 
+      *(d + d_index) = *c; 
+      c--; 
+      d_index--; 
+      if (d_index == 0) break; 
+    }; 
+    for (;;) { 
+      if (d_index < 1 + DECIMAL_FIXED_POINT_SIZE) break; 
+      *(d + d_index) = 0; 
+      d_index--; 
+    }; 
+    for (;;) { 
+      if (d_index == 0) break; 
+      *(d + d_index) = DECIMAL_EOF_BYTE; 
+      d_index--; 
+    }; 
+    d_index = 1 + DECIMAL_FIXED_POINT_SIZE; 
+    for (;;) { 
+      if (*(d + d_index) != DECIMAL_EOF_BYTE) break; 
+      *(d + d_index) = 0; 
+      d_index--; 
+      if (d_index == 0) break; 
+    }; 
+  }; 
+  //DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "d_r = "); decimal__print_raw_r(STDERR_FILENO, d_r); write_eol(STDERR_FILENO);); 
+  
+  // DONE 
+  goto label__exit; 
+  
+  
+  
+  assert(false); 
+  
+  
+  label__e_is_pos_infinity: { 
+    *d = DECIMAL_STATUS__POS_EPSILON; 
+    return DECIMAL__OK; 
+  }; 
+  
+  label__exit: 
+  return DECIMAL__OK; 
+  
+  label__error__malformed_number: { 
+    return DECIMAL__MALFORMED_NUMBER; 
+  }; 
+
+  label__error__internal: { 
+    return DECIMAL__INTERNAL_ERROR; 
+  }; 
+}; 
+
+
+
+
+
+
+// Multiplication is a lowly floating-point operation: digit scaling followed by a shift (and then add them up altogether). 
+RETURN_TYPE_T decimal__mult_r(decimal_env_t * decimal_env, decimal_t * d_r, const decimal_t * e_r) { 
+  uint8_t       * d = *d_r; 
+  const uint8_t * e = *e_r; 
+  const uint8_t d_status = *d; 
+  const uint8_t e_status = *e; 
+  if (d_status == DECIMAL_STATUS__INVALID    ) goto label__exit; 
+  if (e_status == DECIMAL_STATUS__INVALID    ) { *d = DECIMAL_STATUS__INVALID; goto label__exit; }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE) goto label__exit; 
+  if (e_status == DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__INFINI) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) goto label__exit; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__POS_INFINI) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = DECIMAL_STATUS__NEG_INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) { *d = DECIMAL_STATUS__NEG_INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__NEG_INFINI) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = DECIMAL_STATUS__POS_INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) { *d = DECIMAL_STATUS__POS_INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__ZERO) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) goto label__exit; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__POS_EPSILON) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) { *d = DECIMAL_STATUS__NEG_EPSILON; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = DECIMAL_STATUS__NEG_EPSILON; goto label__exit; }; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__NEG_EPSILON) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) { *d = DECIMAL_STATUS__POS_EPSILON; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = DECIMAL_STATUS__POS_EPSILON; goto label__exit; }; 
+    assert(false); 
+  }; 
+  // --- 
+  assert(d_status == DECIMAL_STATUS__POS || d_status == DECIMAL_STATUS__NEG); 
+  // --- 
+  if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__ZERO  ; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__POS_INFINI ) { *d = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__POS_INFINI  : DECIMAL_STATUS__NEG_INFINI ; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__NEG_INFINI  : DECIMAL_STATUS__POS_INFINI ; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__POS_EPSILON) { *d = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__POS_EPSILON : DECIMAL_STATUS__NEG_EPSILON; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__NEG_EPSILON : DECIMAL_STATUS__POS_EPSILON; goto label__exit; }; 
+  // --- 
+  assert(e_status == DECIMAL_STATUS__POS || e_status == DECIMAL_STATUS__NEG); 
+  // --- 
+  const uint8_t same_sign = (d_status == e_status); 
+  int d_base0; 
+  d_base0 = 1; 
+  for (;;) { 
+    if (*(d + d_base0) != DECIMAL_EOF_BYTE) break; 
+    d_base0++; 
+    if (d_base0 == 1 + DECIMAL_FIXED_POINT_SIZE) break; 
+  }; 
+  for (;;) { 
+    if (*(d + d_base0) != 0) break; 
+    d_base0++; 
+    if (d_base0 == DECIMAL_SIZE) goto label__error__malformed_number; 
+  }; 
+  int e_base0; 
+  e_base0 = 1; 
+  for (;;) { 
+    if (*(e + e_base0) != DECIMAL_EOF_BYTE) break; 
+    e_base0++; 
+    if (e_base0 == 1 + DECIMAL_FIXED_POINT_SIZE) break; 
+  }; 
+  for (;;) { 
+    if (*(e + e_base0) != 0) break; 
+    e_base0++; 
+    if (e_base0 == DECIMAL_SIZE) goto label__error__malformed_number; 
+  }; 
+  
+  decimal_t d0; 
+  bcopy(d, d0, DECIMAL_SIZE); 
+  *d = same_sign ? DECIMAL_STATUS__POS : DECIMAL_STATUS__NEG; 
+  decimal_mantisse__set_zero_r(d_r);  
+  //decimal__EOF2ZERO_right_r(d_r); 
+  decimal_mantisse__EOF2ZERO_r(d_r); 
+  
+
+  //write_string_ln(STDOUT_FILENO, "HERE"); decimal__print_ln_r(STDOUT_FILENO, &d0); 
+  int d_index; 
+  int e_index; 
+  uint16_t retenue; 
+  decimal_t d1; 
+  { 
+    e_index = e_base0; 
+    retenue = 0; 
+    for (;;) { 
+      const uint16_t e_v = *(e + e_index); 
+      if (e_v == DECIMAL_EOF_BYTE) break; 
+      //if (e_v == DECIMAL_EOF_BYTE && 0 == retenue) break; 
+      bcopy(d0, d1, DECIMAL_SIZE); 
+      //write_string_ln(STDOUT_FILENO, "HERE"); decimal__print_ln_r(STDOUT_FILENO, &d1); 
+      d_index = d_base0; 
+      //write_string(STDOUT_FILENO, "d_base0 = "); dputn(STDOUT_FILENO, d_base0); write_eol(STDOUT_FILENO); 
+      //write_string(STDOUT_FILENO, "d1[d_index] = "); dputn(STDOUT_FILENO, d1[d_index]); write_eol(STDOUT_FILENO); 
+      for (;;) { 
+	const uint16_t m_v = e_v * ((uint16_t) d1[d_index]) + retenue;  
+	d1[d_index] = m_v % 100; 
+	retenue = m_v / 100; 
+	d_index++; 
+	if (d_index == DECIMAL_SIZE) { 
+	  if (retenue != 0) { *d = same_sign ? DECIMAL_STATUS__POS_INFINI : DECIMAL_STATUS__NEG_INFINI; goto label__exit; }; 
+	  break; 
+	}; 
+	if (d1[d_index] == DECIMAL_EOF_BYTE) { 
+	  if (retenue == 0) break; 
+	  d1[d_index] = 0; 
+	}; 
+      }; 
+      //write_string_ln(STDOUT_FILENO, "HERE"); decimal__print_ln_r(STDOUT_FILENO, &d1); 
+      { 
+	const int shift100 = e_index - (DECIMAL_FIXED_POINT_SIZE + 1); 
+	if (0 == shift100) { } 
+	else if (shift100 > 0) { 
+	  bcopy(((char *)d1) + 1, ((char *)d1) + 1 + shift100, DECIMAL_SIZE - 1 - shift100); 
+	  //memset(((char *)d1) + 1, DECIMAL_EOF_BYTE, shift100); 
+	  bzero(((char *)d1) + 1, shift100); 
+	} 
+	else { 
+	  bcopy (((char *)d1) + 1 + shift100, ((char *)d1) + 1, DECIMAL_SIZE - 1 - shift100); 
+	  memset(((char *)d1) + 1 + shift100, DECIMAL_EOF_BYTE, shift100); 
+	  //bzero (((char *)d1) + 1 + shift100, shift100); 
+	}; 
+      }; 
+      //write_string(STDOUT_FILENO, "HERE: "); decimal__print_ln_r(STDOUT_FILENO, &d1); 
+      //write_string(STDOUT_FILENO, "HERE: "); decimal__print_ln_r(STDOUT_FILENO, d_r); 
+      { 
+	int d1_index = 0; 
+	for (;;) { 
+	  d1_index++; 
+	  if (d1_index == DECIMAL_SIZE) goto label__error__malformed_number; 
+	  if (d1[d1_index] == DECIMAL_EOF_BYTE) continue; 
+	  if (d1[d1_index] == 0) continue; 
+	  break; 
+	}; 
+	uint8_t d1_retenue = 0; 
+	for (;;) { 
+#if 1 
+	  (*d_r)[d1_index] += d1[d1_index] + d1_retenue; 
+#else 
+	  const uint8_t d_v = (*d_r)[d1_index]; 
+	  if (d_v == DECIMAL_EOF_BYTE) { 
+	    (*d_r)[d1_index]  = d1[d1_index] + d1_retenue; 
+	  } 
+	  else { 
+	    (*d_r)[d1_index] += d1[d1_index] + d1_retenue; 
+	  }; 
+#endif 
+	  if ((*d_r)[d1_index] >= 100) { (*d_r)[d1_index] -= 100; d1_retenue = 1; } else { d1_retenue = 0; }; 
+	  d1_index++; 
+	  if (d1_index == DECIMAL_SIZE) { if (d1_retenue != 0) { *d = same_sign ? DECIMAL_STATUS__POS_INFINI : DECIMAL_STATUS__NEG_INFINI; goto label__exit; }; break; }; 
+	  if (d1[d1_index] == DECIMAL_EOF_BYTE) { if (d1_retenue == 0) break; d1[d1_index] = 0; }; 
+	}; 
+      }; 
+      //write_string(STDOUT_FILENO, "HERE: "); decimal__print_ln_r(STDOUT_FILENO, d_r); 
+      e_index++; 
+      if (e_index == DECIMAL_SIZE) { if (retenue != 0) { *d = same_sign ? DECIMAL_STATUS__POS_INFINI : DECIMAL_STATUS__NEG_INFINI; goto label__exit; }; break; }; 
+    }; 
+    // Normalization 
+    { 
+      decimal__ZERO2EOF_right_r(d_r); 
+      decimal__ZERO2EOF_left_r(d_r); 
+      decimal__if_ZERO_then_set_status_r(d_r); 
+    }; 
+    goto label__exit; 
+  }; 
+  
+  assert(false); 
+  
+  
+ label__exit: { 
+#ifdef RETURN_ERROR 
+    return DECIMAL__OK; 
+#else 
+    return d_r; 
+#endif 
+  }; 
+
+
+ label__error__malformed_number: { 
+    decimal_env -> error_id = DECIMAL__MALFORMED_NUMBER; 
+    //snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Malformed number: index = %d — char = %u", (int)index, ((unsigned int)(*d_r)[index])); 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Malformed number"); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+
+  }; 
+  
+}; 

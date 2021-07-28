@@ -1,0 +1,190 @@
+
+
+
+
+
+
+#if 0 
+int main_old001(const int argc, const char * argv[]) { 
+  //fprintf(stderr, "anime_token_env__sizeof = %d" "\n", (int) (anime_token_env__sizeof)); 
+  main__init_stdlog(); 
+  main_arg_print(argc, argv, stdlog_d); 
+  srandomdev(); 
+  
+  { 
+    enum { STRFTIME_BUFFER_SIZE = 64 }; 
+    char strftime_buffer[STRFTIME_BUFFER_SIZE]; 
+    const time_t clock = time(NULL); 
+    struct tm timeptr[1]; 
+    
+    bzero(timeptr, sizeof(timeptr));
+    gmtime_r(&clock, timeptr); 
+    strftime(strftime_buffer, sizeof(strftime_buffer), "TZ=%Z %Y_%m_%d-%Hh%Mm%Ss %A", timeptr); 
+    strftime_buffer[STRFTIME_BUFFER_SIZE-1] = '\0';
+    if (stdlog_d > 0) dprintf(stdlog_d, "%s" "\n", strftime_buffer); 
+ 
+    bzero(timeptr, sizeof(timeptr));
+    localtime_r(&clock, timeptr); 
+    strftime(strftime_buffer, sizeof(strftime_buffer), "TZ=%Z %Y_%m_%d-%Hh%Mm%Ss %A", timeptr); 
+    strftime_buffer[STRFTIME_BUFFER_SIZE-1] = '\0';
+    if (stdlog_d > 0) dprintf(stdlog_d, "%s" "\n", strftime_buffer); 
+  }; 
+  
+  
+  if (1 == argc) { 
+    main__usage(argc, argv); 
+    return ANIME__MAIN__NO_ARG; 
+  }; 
+  
+  if (2 > argc) { 
+    main__usage(argc, argv); 
+    return ANIME__MAIN__TOO_MANY_ARGS; 
+  }; 
+
+  if ('-' == *argv[1] && '\0' != *(argv[1]+1)) { 
+    main__usage(argc, argv); 
+    return ANIME__MAIN__BAD_ARG; 
+  }; 
+
+  int          input_file_fd   = stdin_d;
+  const char * input_file_name = "<stdin>";  
+  do {
+    if ('-' == *argv[1] && '\0' == *(argv[1]+1)) break; 
+    input_file_name = argv[1]; 
+    input_file_fd = open(input_file_name, O_RDONLY); 
+    if (0 > input_file_fd) {
+      fprintf(stderr, "Cannot open input file: %s" "\n", input_file_name, "\n"); 
+      return ANIME__MAIN__CANNOT_OPEN_INPUT_FILE; 
+    }; 
+  } while (false); 
+  dprintf(stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: " "input_file_name = %s" "\n", __func__, input_file_name); 
+  
+  
+  
+  int error_id = ANIME__OK;   
+  do { 
+    anime_t a_anime[1]; 
+    int alright_huh; 
+    anime__make_r  (a_anime, stdlog_d); 
+    //anime__print_d (a_anime, stdout_d); 
+    
+#if 1
+    do { 
+      anime_token_input_env_t   *  input_env; 
+      anime_token_env_t   *  token_env; 
+      //anime_parser_env_t  * parser_env; 
+      //anime_t * this; 
+      
+      //this = NULL; 
+      //this = anime_make(); 
+      input_env  = anime_token_input_env__make(stdlog_d); 
+      token_env  = anime_token_env__make(stdlog_d);  
+      //parser_env = anime_parser_env__make(); 
+
+      const int input_i = anime_token_input__stack_push__filedes(input_env, input_file_fd, input_file_name); 
+      assert(input_i >= 0); 
+  
+      const int allright_huh = anime_token__parser(input_env, input_i, token_env); 
+      if (not(allright_huh)) { dputs_array(stderr_d, "Something got wrong.\n"); break; }; 
+	
+      anime_token__print_all_tokens(stdlog_d, token_env); fflush(NULL); 
+
+#if 0 
+      error_id = anime_data_generation_001_from_tokens(token_env, a_anime); 
+      //dprintf(stdlog_d, "error_id: %d" "\n", error_id); 
+      if (error_id != ANIME__OK) { 
+	dprintf(stderr_d, "<%s>: " "%s[%d]: " "%s" "\n", a_anime -> filename, error_id > 0 ? "Warning" : "Error", error_id, a_anime -> error_str); 
+	break; 
+      }; 
+#elif 0 
+      error_id = anime_parser__parenthesis__check(token_env); 
+      //dprintf(stdlog_d, "error_id: %d" "\n", error_id); 
+      if (0 == error_id) { dprintf(stderr_d, "parenthesis_check: OK" "\n"); }; 
+      if (error_id != 0) { 
+	dprintf(stderr_d, "<%s>: " "%s[%d]: " "%s" "\n", a_anime -> filename, error_id > 0 ? "Warning" : "Error", error_id, "anime_parser__parenthesis__check"); 
+	break; 
+      }; 
+	
+      anime_parser_env_t * parser_env; 
+      parser_env = anime_parser_env__make(stdlog_d); 
+      error_id = anime_parser__automaton(parser_env, token_env); 
+      if (0 <= error_id) { dprintf(stderr_d, "tree_building: OK (%d)" "\n", error_id); }; 
+      if (error_id < 0) { 
+	dprintf(stderr_d, "<%s>: " "%s[%d]: " "%s" "\n", a_anime -> filename, error_id > 0 ? "Warning" : "Error", error_id, "parser"); 
+	break; 
+      }; 
+	
+      const anime_tree_env_t * tree_env = anime_parser_env__get_tree_env(parser_env); 
+	
+      anime_tree_env__print_d__raw(tree_env, stderr_d); 
+
+
+      error_id = anime_data_generation_002_from_trees(tree_env, token_env, a_anime, stderr_d); 
+      //dprintf(stdlog_d, "error_id: %d" "\n", error_id); 
+      if (error_id != ANIME__OK) { 
+	dprintf(stderr_d, "<%s>: " "%s[%d]: " "%s" "\n", a_anime -> filename, error_id > 0 ? "Warning" : "Error", error_id, a_anime -> error_str); 
+	break; 
+      }; 
+	
+#elif 1 
+
+      //dprintf(stdlog_d, "ANIME__SYNTAX_FILTERING__MISMATCHING_PARENTHESIS = %d" "\n", ANIME__SYNTAX_FILTERING__MISMATCHING_PARENTHESIS); exit(0); 
+      //dprintf(stdlog_d, "ANIME__DATA_GENERATION__TOO_MANY_TOKENS = %d" "\n", ANIME__DATA_GENERATION__TOO_MANY_TOKENS); exit(0); 
+      //dprintf(stdlog_d, "ANIME__DATA_GENERATION__ERROR_SIZE_LOWER_THAN_1 = %d" "\n", ANIME__DATA_GENERATION__ERROR_SIZE_LOWER_THAN_1); exit(0); 
+	
+      error_id = anime_data_generation_003_from_syntax_filtering(token_env, a_anime, stderr_d); 
+      //dprintf(stdlog_d, "error_id: %d" "\n", error_id); 
+      if (error_id != ANIME__OK) { 
+	dprintf(stderr_d, "<%s>: " "%s[%d]: " "%s" "\n", a_anime -> filename, error_id > 0 ? "Warning" : "Error", error_id, a_anime -> error_str); 
+	break; 
+      }; 
+	
+#else 
+      assert(false); 
+#endif 
+	
+	
+      error_id = anime__consistency_check(a_anime, stderr_d); 
+      //anime__print_d(a_anime, stderr_d); 
+      anime__print_d(a_anime, stdout_d); 
+      if (error_id == ANIME__OK) { 
+	dprintf(stderr_d, "<%s>: " "OK" "\n", a_anime -> filename); 
+	break; 
+      }; 
+	
+      //anime__print_d(a_anime, stderr_d); 
+      dprintf(stderr_d, "<%s>: " "%s[%d]: " "%s" "\n", a_anime -> filename, error_id > 0 ? "Warning" : "Error", error_id, a_anime -> error_str); 
+	
+    } while (false); 
+#else     
+    alright_huh = anime__fill_from_file__new(a_anime, input_file_name, input_file_fd); 
+#endif 
+    
+
+#if 0 
+    dprintf(stdlog_d, "STRING_STACK[ %d / %d ] = %.1f%%" "\n", a_anime -> string_stack_nb, (int) (sizeof(a_anime -> string_stack) / sizeof(*(a_anime -> string_stack))), 100.0 * ((double) a_anime -> string_stack_nb) / ((double) (sizeof(a_anime -> string_stack) / sizeof(*(a_anime -> string_stack)))));  
+#endif 
+#if 0  
+    fprintf(stderr, "LEXER_STACK[ %d / %d ] = %.1f%%" "\n", a_anime -> lexer_stack_nb, sizeof(a_anime -> lexer_stack) / sizeof(*(a_anime -> lexer_stack)), 100.0 * ((double) a_anime -> lexer_stack_nb) / ((double) (sizeof(a_anime -> lexer_stack) / sizeof(*(a_anime -> lexer_stack)))));  
+#endif 
+    
+    anime__delete_r(a_anime); 
+  } while (false); 
+  
+  
+  if (input_file_fd != stdin_d) { 
+    close(input_file_fd); 
+  }; 
+  
+  
+#if 0 
+  fprintf(stderr, "Hello World!" "\n"); 
+  fprintf(stderr, "%d" "\n", INT8_MIN); 
+  fprintf(stderr, "%d" "\n", ~(INT8_MAX)); 
+  fprintf(stderr, "%d" "\n", ANIME__STRCOPY); 
+#endif 
+  
+  //return ANIME__MAIN__OK; 
+  return error_id; 
+}; 
+#endif 

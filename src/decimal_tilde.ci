@@ -1,0 +1,45 @@
+RETURN_TYPE_T decimal__tilde_r(decimal_env_t * decimal_env, decimal_t * d_r) { 
+  const uint8_t status = (*d_r)[DECIMAL_STATUS_INDEX]; 
+  switch (status) { 
+  case DECIMAL_STATUS__INVALID       : goto label__exit; 
+  case DECIMAL_STATUS__ZERO          : (*d_r)[0] = DECIMAL_STATUS__POS; memset((*d_r) + DECIMAL_DIGITS_INDEX, DECIMAL_BASE - 1, DECIMAL_DIGITS_SIZE); goto label__exit; 
+  case DECIMAL_STATUS__INFINI        : goto label__exit; 
+  case DECIMAL_STATUS__POS           : break; 
+  case DECIMAL_STATUS__NEG           : break; 
+  case DECIMAL_STATUS__POS_INFINI    : goto label__exit; 
+  case DECIMAL_STATUS__NEG_INFINI    : goto label__exit; 
+  case DECIMAL_STATUS__POS_EPSILON   : (*d_r)[0] = DECIMAL_STATUS__POS; memset((*d_r) + DECIMAL_DIGITS_INDEX, DECIMAL_BASE - 1, DECIMAL_DIGITS_SIZE); goto label__exit; 
+  case DECIMAL_STATUS__NEG_EPSILON   : (*d_r)[0] = DECIMAL_STATUS__NEG; memset((*d_r) + DECIMAL_DIGITS_INDEX, DECIMAL_BASE - 1, DECIMAL_DIGITS_SIZE); goto label__exit; 
+  case DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE: goto label__exit; 
+  default: goto error_label__not_listed_status; 
+  }; 
+  decimal_mantisse__EOF2ZERO_r(d_r); 
+  for (int i = DECIMAL_DIGITS_INDEX; i < DECIMAL_DIGITS_INDEX_XLAST; i++) { 
+    (*d_r)[i] = DECIMAL_BASE - 1 - (*d_r)[i]; 
+  }; 
+  decimal_mantisse__ZERO2EOF_right_r(d_r); 
+  decimal_mantisse__ZERO2EOF_left_r(d_r); 
+  if ((*d_r)[DECIMAL_FIXED_POINT_INDEX] == DECIMAL_EOF_BYTE) (*d_r)[DECIMAL_FIXED_POINT_INDEX] = 0; 
+  decimal_status__if_ZERO_then_set_status_r(d_r); 
+  
+ label__exit: { 
+#ifdef RETURN_ERROR 
+    return DECIMAL__OK; 
+#else 
+    return d_r; 
+#endif 
+  };
+
+ error_label__not_listed_status: { 
+    const char * status_cstr = decimal_status__cstr(status); 
+    decimal_env -> error_id = DECIMAL__STATUS_NOT_LISTED_IN_SWITCH; 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Status not listed in switch: %d [%s]", ((int)status), status_cstr); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+  }; 
+
+}; 

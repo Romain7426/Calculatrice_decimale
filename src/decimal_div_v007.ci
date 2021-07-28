@@ -1,0 +1,2175 @@
+
+// Division is a floating-point operation: digit scaling followed by a shift (and then add them up altogether). 
+// Unlike multiplication, division is a floating-point operation high-digit based. 
+// 
+// A thoughtful representation for such operations is: [sign] . [scaling-digit] . [1 + x] . [base]^[N], with 0 < 1 + x < 2 
+// (one can add the condition that 'x' be the smallest non-negative number to get unicity), 
+// because many algorithms converge for 0 < 1 + x < 2, meaning for -1 < x < 1. 
+// For instance: 
+//    1/[1-x] = Σx^i 
+//    ln(1-x) = Σx^i/i 
+//    etc. 
+// Becareful that such a representation is not stable. For example, on computing square, 
+// there is no reason that [scaling-digit]² would still be a digit, nor that [1 + x]² would still be lower than 2 ([1 + 0.5]² = 2.25). 
+// 
+// There are several methods to implement division: 
+//  a. The standard method 
+//     How many times 'b' shows up in 'a'? That's the first digit λ. 
+//     Then substract λb to a. Then iterate on [a - λb].B: how many times 'b' shows up in '[a - λb].B'? 
+//     Etc. 
+//     In the end, we get: a - λ0 b - λ1 b B^-1 - λ2 b B^-2 - λ3 b B^-3 … = O(B^-D) ~ 0  {D being the number of digits} 
+//                         a ~ a + O(B^-D) = b . [ λ0 + λ1 B^-1 + λ2 B^-2 + λ3 B^-3 + … ] 
+//     
+//  b. A variation of the standard method.   
+//     Instead of computation digit-multiplications, digit-divisions can be used. 
+//      a = λ0 [ 1 + x0 ] 
+//      b = μ0 [ 1 + y0 ] 
+//      a / b = [λ0/μ0] x [1 + x0]/[1 + y0] 
+//            = [λ0/μ0] x { 1 + (x0-y0)/[1 + y0] } 
+//            = [λ0/μ0] x { 1 + s1 λ1 B^-N1 [1 + x1]/[1 + y0] } , using (x0-y0) = s1 . λ1 . B^-N1 . [1 + x1] 
+//            = [λ0/μ0] x { 1 + s1 λ1 B^-N1 x { 1 + (x1 - y0)/[1 + y0] } } 
+//            = [λ0/μ0] x { 1 + s1 λ1 B^-N1 x { 1 + s2 λ2 B^-N2 [1 + x2]/[1 + y0] } } , using (x1-y0) = s2 . λ2 . B^-N2 . [1 + x2] 
+//            = [λ0/μ0] x { 1 + s1 λ1 B^-N1 x { 1 + s2 λ2 B^-N2 x { 1 + s3 λ3 B^-N3 [1 + x3]/[1 + y0] } } , using (x2-y0) = s3 . λ3 . B^-N3 . [1 + x3] 
+//            Etc. 
+//            = [λ0/μ0] x { 1 + s1 λ1 B^-N1 x { 1 + s2 λ2 B^-N2 x { 1 + s3 λ3 B^-N3 x { 1 + s4 λ4 B^-N4  x { 1 + s5 λ5 B^-N5 x (1 + …) } } } } } 
+//            = [λ0/μ0] x { 1 + s1 λ1 B^-N1 + s1 λ1 B^-N1 x s2 λ2 B^-N2 x { 1 + s3 λ3 B^-N3 x { 1 + s4 λ4 B^-N4  x { 1 + s5 λ5 B^-N5 x (1 + …) } } } } 
+//            = [λ0/μ0] x { 1 + s1 λ1 B^-N1 + s1 λ1 B^-N1 x s2 λ2 B^-N2 + s1 λ1 B^-N1 x s2 λ2 B^-N2 x s3 λ3 B^-N3 x { 1 + s4 λ4 B^-N4  x { 1 + s5 λ5 B^-N5 x (1 + …) } } } 
+//            = [λ0/μ0] x { 1 + s1 λ1 B^-N1 + s1 λ1 B^-N1 x s2 λ2 B^-N2 + s1 λ1 B^-N1 x s2 λ2 B^-N2 x s3 λ3 B^-N3 + 
+//                                                                                s1 λ1 B^-N1 x s2 λ2 B^-N2 x s3 λ3 B^-N3 x s4 λ4 B^-N4  x { 1 + s5 λ5 B^-N5 x (1 + …) } } 
+//     So I misthought, as I cannot make it work. Weird. 
+//      a / b = [λ0/μ0] x [1 + x0]/[1 + y0] 
+//            = [λ0/μ0] x { 1 + (x0-y0)/[1 + y0] } 
+//            = [λ0/μ0] x { 1 + s1 λ1 B^-N1 [1 + x1]/[1 + y0] } , using (x0-y0) = s1 . λ1 . B^-N1 . [1 + x1] 
+//            = [λ0/μ0] x { 1 + s1 λ1 B^-N1 x { 1 + (x1 - y0)/[1 + y0] } } 
+//            = [λ0/μ0] x { 1 + s1 λ1 B^-N1 + s1 λ1 B^-N1 x (x1 - y0)/[1 + y0] } 
+//            = [λ0/μ0] x { 1 + s1 λ1 B^-N1 + s2 λ2 B^-N2 [1 + x2]/[1 + y0] } } , using s1 λ1 B^-N1 x (x1 - y0) = s2 . λ2 . B^-N2 . [1 + x2] 
+//            = [λ0/μ0] x { 1 + s1 λ1 B^-N1 + s2 λ2 B^-N2 x { 1 + (x2 - y0)/[1 + y0] } } 
+//            = [λ0/μ0] x { 1 + s1 λ1 B^-N1 + s2 λ2 B^-N2 + s2 λ2 B^-N2 x (x2 - y0)/[1 + y0] } 
+//            = [λ0/μ0] x { 1 + s1 λ1 B^-N1 + s2 λ2 B^-N2 + s3 λ3 B^-N3 x [1 + x3]/[1 + y0] } , using s2 λ2 B^-N2 x (x2 - y0) = s3 . λ3 . B^-N3 . [1 + x3] 
+//            = [λ0/μ0] x { 1 + s1 λ1 B^-N1 + s2 λ2 B^-N2 + s3 λ3 B^-N3 + s4 λ4 B^-N4 x [1 + x4]/[1 + y0] } , using s3 λ3 B^-N3 x (x3 - y0) = s4 . λ4 . B^-N4 . [1 + x4] 
+//            Etc. 
+//     This time, it works. 
+//     
+// c. Using the inverse serie. 
+//      a = λ0 [ 1 - x0 ] 
+//      b = μ0 [ 1 - y0 ] 
+//      1 / b = 1/μ0 x 1/[1-y0] = 1/μ0 x Σy0^i 
+//      a / b = a x { [ Σy0^i ] / μ0 } 
+//     
+// d. Using the serie of squares: 
+//      1 / [1 + x] = [1-x]/[1-x²] = (1-x)(1+x²)/[1-x^4] = (1-x)(1+x²)(1+x^4)/[1-x^8] = (1-x)(1+x²)(1+x^4)(1+x^8)/[1-x^16] 
+//                  = (1-x)(1+x²)(1+x^4)(1+x^8)(1+x^16)(1+x^32)(1+x^64)(1+x^128) / [1-x^256] 
+//                  = (1-x)(1+x²)(1+x^4)(1+x^8)(1+x^16)(1+x^32)(1+x^64)(1+x^128) + O(B^-256)  { if |x| < 1 } 
+//    
+//     
+//     
+//     
+// ** Velocity **     
+//     
+// a. That method computes one digit every cycle. 
+//    To get 256 digits, we need 256 cycles. 
+//    Every cycle, we need to compute: 
+//     * one digit multiplication   [ 256 unit operations ] 
+//     * one substraction           [ 256 unit operations ] 
+//     * possibly, a decrementation [ 256 unit operations ] 
+//    Which amounts to roughly 3 decimal operations per cycle [ 768 unit operations ], 
+//    thus a total of 3 x 65536 [196608] unit operations, thus roughly 200k CPU cycle for one operation. 
+//    So, it's not fast, but it could be slower. 
+//    Regarding fore-computation, digit-multiplications of 'b' can be fore-computed (B digit-multiplications). 
+// 
+// b. That method computes one digit every cycle. 
+//    To get 256 digits, we need 256 cycles. 
+//    Every cycle, we need to compute: 
+//     * one substraction           [ 256 unit operations ] 
+//     * one digit multiplication   [ 256 unit operations ] 
+//     * one digit division         [ 256 unit operations ] 
+//     * possibly, a decrementation [ 256 unit operations ] 
+//    Which amounts to roughly 3 decimal operations per cycle [ 1024 unit operations ], 
+//    thus a total of 4 x 65536 [260k] unit operations, thus roughly 260k CPU cycle for one operation. 
+//    On top of that, there are three over-all digit-divisions and one over-all digit-multiplication. 
+//    That's slower (roughly 30%). 
+//    Moreover, the digit-multiplications and the digit-divisions cannot be fore-computed (unlike the 'a', where each is computed once and for all). 
+// 
+// c. That method computes one digit every cycle. 
+//    To get 256 digits, we need 256 cycles. 
+//    Every cycle, we need to compute: 
+//     * one decimal multiplication         [ 512 unit operations ] 
+//          o 256 digit-multiplications     { 256 unit operations } 
+//          o 256 decimal additions         { 256 unit operations } 
+//     * one decimal addition               [ 256 unit operations ] 
+//    Which amounts to roughly 3 decimal operations per cycle [ 768 unit operations ], 
+//    thus a total of 3 x 65536 [200k] unit operations, thus roughly 200k CPU cycle for one operation. 
+//    On top of that, there are two over-all digit-divisions and one over-all decimal-multiplication. 
+//    That looks to be a slightly slower (mostly equivalent though). 
+//    Regarding fore-computation, digit-multiplications of 'y0' can be fore-computed (B digit-multiplications). 
+//     
+// d. That method doubles the number of computed digits for every step. 
+//    That method needs to compute: 
+//     - 1 digit division                [     256 unit operations ] 
+//     - 8 decimal squares               [ 8 x 512 unit operations ] 
+//     - 7 decimal multiplications       [ 7 x 512 unit operations ] 
+//     - 1 digit division                [     256 unit operations ] 
+//     - one last decimal multiplication [ 1 x 512 unit operations ] 
+//    Which amounts to roughly 16.5 decimal operations [ around 8.5k unit operations ], 
+//    thus a total of roughly 8.5k CPU cycle for one operation. 
+//    So it looks blazingly fast (might be something wrong somewhere). 
+//    Regarding fore-computation, nothing seems to be fore-computable. 
+// 
+// 
+// 
+
+
+
+
+
+
+
+// So: 
+//  - We will rebase 'd' and 'e' on index 1. 
+//  - We will compute their shift exponent. 
+//  - We will compute their digit len. 
+// After that: 
+//  - We will take the shorter one as the multiplier. 
+//  - We will take the longer one as the multiplicand. 
+//  - We will compute how many different digits the multiplier has. 
+//  - We will fore-compute the digit multiplications of the multiplicand by the digits of the multiplier. 
+// Finally: 
+//  - We will shift and add them up altogether. 
+//  - We will rebase the result according to the shift exponent. 
+// Done! 
+
+
+
+
+
+
+
+
+static RETURN_TYPE_T decimal__div_r__aux(decimal_env_t * decimal_env, decimal_t * d_r, const decimal_t * e_r, decimal_t * c_r, const uint8_t normalize_c_huh, int16_t * c_N_ref) { 
+  uint8_t       * d = *d_r; 
+  const uint8_t * e = *e_r; 
+  const uint8_t d_status = *d; 
+  const uint8_t e_status = *e; 
+  if (d_status == DECIMAL_STATUS__INVALID    ) goto label__exit; 
+  if (e_status == DECIMAL_STATUS__INVALID    ) { *d = DECIMAL_STATUS__INVALID; goto label__exit; }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE) goto label__exit; 
+  if (e_status == DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__INFINI) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) goto label__exit; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__POS_INFINI) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) { *d = DECIMAL_STATUS__NEG_INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = DECIMAL_STATUS__NEG_INFINI; goto label__exit; }; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__NEG_INFINI) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) { *d = DECIMAL_STATUS__POS_INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = DECIMAL_STATUS__POS_INFINI; goto label__exit; }; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__ZERO) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) goto label__exit; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__POS_EPSILON) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = DECIMAL_STATUS__NEG_EPSILON; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) { *d = DECIMAL_STATUS__NEG_EPSILON; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    assert(false); 
+  }; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__NEG_EPSILON) { 
+    if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__ZERO; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_INFINI ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = DECIMAL_STATUS__POS_EPSILON; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS        ) goto label__exit; 
+    if (e_status == DECIMAL_STATUS__NEG        ) { *d = DECIMAL_STATUS__POS_EPSILON; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__POS_EPSILON) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; goto label__exit; }; 
+    assert(false); 
+  }; 
+  // --- 
+  assert(d_status == DECIMAL_STATUS__POS || d_status == DECIMAL_STATUS__NEG); 
+  // --- 
+  if (e_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__ZERO  ; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__POS_INFINI ) { *d = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__POS_EPSILON : DECIMAL_STATUS__NEG_EPSILON; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__NEG_INFINI ) { *d = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__NEG_EPSILON : DECIMAL_STATUS__POS_EPSILON; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__POS_EPSILON) { *d = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__POS_INFINI  : DECIMAL_STATUS__NEG_INFINI ; goto label__exit; }; 
+  if (e_status == DECIMAL_STATUS__NEG_EPSILON) { *d = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__NEG_INFINI  : DECIMAL_STATUS__POS_INFINI ; goto label__exit; }; 
+  // --- 
+  assert(e_status == DECIMAL_STATUS__POS || e_status == DECIMAL_STATUS__NEG); 
+  // --- 
+  const uint8_t same_sign_huh = (d_status == e_status); 
+  
+  // Division is a floating-point operation. 
+  // So we will switch 'd' and 'e' from fixed-point to floating-point. 
+  
+  // First, let's renormalize 'd' and 'e' (removing all un-necessary zeroes). 
+ 
+  decimal_t shifted_d; 
+  bcopy(d, shifted_d, DECIMAL_SIZE); 
+  DEBUG_STATEMENT(100,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_d = "); decimal__print_debug_ln_r(STDERR_FILENO, decimal_env, &shifted_d);); 
+  uint8_t * shifted_d_ptr = &(shifted_d[0]); 
+  uint8_t d_first_index; 
+  uint8_t d_last_index; 
+  { 
+    uint16_t d_index = DECIMAL_SIZE; 
+    for (;;) { 
+      d_index--; 
+      if (0 == d_index) goto label__error__malformed_number; 
+      const uint8_t d_value = *(shifted_d_ptr + d_index); 
+      if (d_value == DECIMAL_EOF_BYTE) continue; 
+      if (d_value != 0) break; 
+      *(shifted_d_ptr + d_index) = DECIMAL_EOF_BYTE; 
+    }; 
+    d_first_index = d_index; 
+    d_index = 0; 
+    for (;;) { 
+      d_index++; 
+      if (DECIMAL_SIZE == d_index) goto label__error__malformed_number; 
+      const uint8_t d_value = *(shifted_d_ptr + d_index); 
+      if (d_value == DECIMAL_EOF_BYTE) continue; 
+      if (d_value != 0) break; 
+      *(shifted_d_ptr + d_index) = DECIMAL_EOF_BYTE; 
+    }; 
+    d_last_index = d_index;  
+  }; 
+  const uint8_t d_len = d_first_index - d_last_index + 1; 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "d_first_index: "); dputn(STDERR_FILENO, d_first_index); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "d_last_index : "); dputn(STDERR_FILENO, d_last_index ); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "d_len        : "); dputn(STDERR_FILENO, d_len        ); write_eol(STDERR_FILENO);); 
+  
+  
+  decimal_t shifted_e; 
+  bcopy(e, shifted_e, DECIMAL_SIZE); 
+  DEBUG_STATEMENT(100,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e = "); decimal__print_debug_ln_r(STDERR_FILENO, decimal_env, &shifted_e);); 
+  uint8_t * shifted_e_ptr = &(shifted_e[0]); 
+  uint8_t e_first_index; 
+  uint8_t e_last_index; 
+  { 
+    uint16_t e_index = DECIMAL_SIZE; 
+    for (;;) { 
+      e_index--; 
+      if (0 == e_index) goto label__error__malformed_number; 
+      const uint8_t e_value = *(shifted_e_ptr + e_index); 
+      if (e_value == DECIMAL_EOF_BYTE) continue; 
+      if (e_value != 0) break; 
+      *(shifted_e_ptr + e_index) = DECIMAL_EOF_BYTE; 
+    }; 
+    e_first_index = e_index; 
+    e_index = 0; 
+    for (;;) { 
+      e_index++; 
+      if (DECIMAL_SIZE == e_index) goto label__error__malformed_number; 
+      const uint8_t e_value = *(shifted_e_ptr + e_index); 
+      if (e_value == DECIMAL_EOF_BYTE) continue; 
+      if (e_value != 0) break; 
+      *(shifted_e_ptr + e_index) = DECIMAL_EOF_BYTE; 
+    }; 
+    e_last_index = e_index;  
+  }; 
+  const uint8_t e_len = e_first_index - e_last_index + 1; 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "e_first_index: "); dputn(STDERR_FILENO, e_first_index); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "e_last_index : "); dputn(STDERR_FILENO, e_last_index ); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "e_len        : "); dputn(STDERR_FILENO, e_len        ); write_eol(STDERR_FILENO);); 
+
+  // Now we can compute the exponents ('N'). 
+  const int d_N = d_first_index - DECIMAL_FIXED_POINT_INDEX; 
+  const int e_N = e_first_index - DECIMAL_FIXED_POINT_INDEX; 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "d_N: "); dputn(STDERR_FILENO, d_N); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "e_N: "); dputn(STDERR_FILENO, e_N); write_eol(STDERR_FILENO);); 
+  
+  
+  // Now that the exponent are computed, we will normalize 
+  // 'd' and 'e' into 'shifted_d' and 'shifted_e', 
+  // where the most significant digit will be moved to index "DECIMAL_SIZE-1". 
+  // 
+  // Before computing 'shifted_d' and 'shifted_e', 
+  // at any step of the division, the first digit of the dividend could be smaller than the first 
+  // digit of the divisor — as such, two digits of the dividend would be required. 
+  // Symetrically, two digits of the divisor would be required in such a case (more precisely, 
+  // a digit-multiple of the divisor would require two digits). 
+  // Thus, the most significant digit of 'shifted_e' will always be at index "DECIMAL_SIZE-2". 
+  // On the other hand, the most significant digit of 'shifted_d' could be at index "DECIMAL_SIZE-2" or at index "DECIMAL_SIZE-1". 
+  // And, the most significant digit of a digit-multiple of 'shifted_e' could be at index "DECIMAL_SIZE-2" or at index "DECIMAL_SIZE-1". 
+  // 
+  // Especially, regarding the quotient, its exponent is not simply [d_N - e_N], as it has to be decreased 
+  // when the most significant digit of 'd' is smaller than the most significant digit of 'e' (think: «1 / 3»). 
+  // (In case when both digits are equal, subsequent digits have to be inspected (think: «1110 / 1111»). 
+  // 
+  // NB:  99 x 01 00 99 = 99 98 01 -> the same number of digits! 
+  
+  // Therefore, we compare 'd' and 'e' based on their most significant digits, ignoring the floating-point. 
+  //uint8_t d_too_small_huh = false; 
+  int8_t d_is_greater_equal_smaller_than_e = 1; // 1, 0, -1 -> greater, equal, smaller 
+  { 
+    int d_index = d_first_index; 
+    int e_index = e_first_index; 
+    for (;;) { 
+      const uint8_t d_v = *(d + d_index); 
+      const uint8_t e_v = *(e + e_index); 
+      if (e_v == DECIMAL_EOF_BYTE) { if (d_v == DECIMAL_EOF_BYTE) { d_is_greater_equal_smaller_than_e = 0; }; break; }; 
+      if (d_v == DECIMAL_EOF_BYTE) { d_is_greater_equal_smaller_than_e = -1; break; }; 
+      if (d_v > e_v) break; 
+      if (d_v < e_v) { d_is_greater_equal_smaller_than_e = -1; break; }; 
+      if (d_index == d_last_index) { 
+	if (e_index == e_last_index) { d_is_greater_equal_smaller_than_e = 0; break; }; 
+#if 1 
+	d_is_greater_equal_smaller_than_e = -1; break; 
+#elif 0 
+	const uint8_t e_v2 = *(e + e_index); 
+	if (e_v2 == DECIMAL_EOF_BYTE) break; 
+	if (e_v2 != 0) { d_too_small_huh = true; break; }; 
+	if (e_index != DECIMAL_FIXED_POINT_INDEX) { d_too_small_huh = true; break; }; 
+	if (*(e + e_index - 1) == DECIMAL_EOF_BYTE) break; 
+	d_too_small_huh = true; break; 
+#endif 
+      }; 
+      if (e_index == e_last_index) break; 
+      d_index--; 
+      e_index--; 
+    }; 
+  }; 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); dputs_array(STDERR_FILENO, "d_is_greater_equal_smaller_than_e: " "[", int_string__stack(d_is_greater_equal_smaller_than_e), "] ", (0 == d_is_greater_equal_smaller_than_e) ? "equal" : (1 == d_is_greater_equal_smaller_than_e) ? "greater" : "lower", "\n");); 
+
+  const uint8_t d_too_small_huh = (-1 == d_is_greater_equal_smaller_than_e); 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "d_too_small_huh: "); dputs(STDERR_FILENO, d_too_small_huh ? "true" : "false"); write_eol(STDERR_FILENO);); 
+  
+  const int c_N = d_too_small_huh ? (d_N - e_N - 1) : (d_N - e_N); 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "c_N: "); dputn(STDERR_FILENO, c_N); write_eol(STDERR_FILENO);); 
+  
+  if (0 == d_is_greater_equal_smaller_than_e) { 
+    *d = same_sign_huh ? DECIMAL_STATUS__POS : DECIMAL_STATUS__NEG; 
+    const uint8_t c_N_index = c_N + DECIMAL_FIXED_POINT_INDEX; 
+    if (normalize_c_huh) { 
+      (*c_r)[0] = *d; 
+      if (NULL != c_N_ref) { *c_N_ref = c_N; }; 
+      bzero(&(*c_r)[1], DECIMAL_SIZE - 2); 
+      (*c_r)[255] = 1; 
+      //quotient__print_ln_r(STDERR_FILENO, (decimal_t *)(*c_r), c_N); 
+    }; 
+
+    { 
+      int d_index = DECIMAL_SIZE; 
+      for (;;) { 
+	d_index--; 
+	if (d_index == c_N_index) break; 
+	*(d + d_index) = DECIMAL_EOF_BYTE; 
+      }; 
+      *(d + d_index) = 1; 
+      d_index--; 
+      for (;;) { 
+	if (d_index < DECIMAL_FIXED_POINT_INDEX) break; 
+	*(d + d_index) = 0; 
+	d_index--; 
+      }; 
+      for (;;) { 
+	if (d_index == 0) break; 
+	*(d + d_index) = DECIMAL_EOF_BYTE; 
+	d_index--; 
+      }; 
+      d_index = c_N_index; 
+      for (;;) { 
+	d_index++; 
+	if (d_index > DECIMAL_FIXED_POINT_INDEX) break; 
+	if (*(d + d_index) != DECIMAL_EOF_BYTE) continue; 
+	*(d + d_index) = 0; 
+      }; 
+    }; 
+    
+    goto label__exit; 
+  }; 
+
+  
+  const int shifted_d_len = (d_len != (DECIMAL_SIZE_MINUS1)) ? d_len : (d_too_small_huh ? d_len : (d_len - 1)); 
+  { 
+    const int target_index    = d_too_small_huh ? (DECIMAL_SIZE_MINUS1) : (DECIMAL_SIZE - 2); 
+    const int shifted_d_count = target_index - d_first_index; 
+    if (0 == shifted_d_count) { } 
+    else if (shifted_d_count > 0) { 
+      bcopy(((char *)shifted_d) + d_last_index, ((char *)shifted_d) + d_last_index + shifted_d_count, shifted_d_len); 
+      memset(((char *)shifted_d) + d_last_index, DECIMAL_EOF_BYTE, shifted_d_count); 
+    } 
+    else { 
+      const int DELTA_LEN = -shifted_d_count; 
+      bcopy(((char *)shifted_d) + d_last_index, ((char *)shifted_d) + d_last_index + shifted_d_count, shifted_d_len); 
+      memset(((char *)shifted_d) + d_first_index + shifted_d_count, DECIMAL_EOF_BYTE, DELTA_LEN); 
+    }; 
+  };
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_d = "); decimal__print_debug_ln_r(STDERR_FILENO, decimal_env, &shifted_d);); 
+
+  const int shifted_e_len         = (e_len != (DECIMAL_SIZE_MINUS1)) ? e_len : (e_len - 1); 
+  const int shifted_e_first_index = (DECIMAL_SIZE - 2); 
+  const int shifted_e_last_index  = shifted_e_first_index - shifted_e_len + 1; 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_len: "); dputn(STDERR_FILENO, shifted_e_len); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_first_index: "); dputn(STDERR_FILENO, shifted_e_first_index); write_eol(STDERR_FILENO););  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_last_index: "); dputn(STDERR_FILENO, shifted_e_last_index); write_eol(STDERR_FILENO);); 
+  { 
+    const int target_index    = shifted_e_first_index; 
+    const int shifted_e_count = target_index - e_first_index; 
+    DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_count: "); dputn(STDERR_FILENO, shifted_e_count); write_eol(STDERR_FILENO););    if (0 == shifted_e_count) { } 
+    else if (shifted_e_count > 0) { 
+      bcopy(((char *)shifted_e) + e_last_index, ((char *)shifted_e) + e_last_index + shifted_e_count, shifted_e_len); 
+      memset(((char *)shifted_e) + e_last_index, DECIMAL_EOF_BYTE, shifted_e_count); 
+    } 
+    else { 
+      const int DELTA_LEN = -shifted_e_count; 
+      bcopy(((char *)shifted_e) + e_last_index, ((char *)shifted_e) + e_last_index + shifted_e_count, shifted_e_len); 
+      memset(((char *)shifted_e) + e_first_index + shifted_e_count, DECIMAL_EOF_BYTE, DELTA_LEN); 
+    }; 
+  };
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e = "); decimal__print_debug_ln_r(STDERR_FILENO, decimal_env, &shifted_e);); 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e = "); decimal__print_raw_ln_r(STDERR_FILENO, decimal_env, &shifted_e);); 
+  
+  //assert(false); 
+  
+  // Now, we gonna compute once and for all all the 100-digit multiples of 'shifted_e'. 
+  decimal_t shifted_e_digit_tab[DECIMAL_BASE]; 
+  //decimal_t shifted_e_digit_tab[DECIMAL_BASE + 1]; // «+1», as DECIMAL_BASE must be included, as 'd' could exactly be equal to 'e x DECIMAL_BASE'. Such is the case of '1 / 100', or '1 / BASE'. 
+  //for (int i = 0; i < (int)ARRAY_SIZE(shifted_e_digit_tab); i++) { 
+  for (int i = 0; i < DECIMAL_BASE; i++) { 
+    bcopy(shifted_e, shifted_e_digit_tab[i], DECIMAL_SIZE); 
+  }; 
+  const int f_base = shifted_e_last_index; 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "f_base: "); dputn(STDERR_FILENO, f_base); write_eol(STDERR_FILENO);); 
+  shifted_e_digit_tab[0][0] = DECIMAL_STATUS__ZERO; 
+  for (uint16_t i = 2; i < DECIMAL_BASE; i++) { 
+    DEBUG_STATEMENT(1000,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "i: "); dputn(STDERR_FILENO, i); write_eol(STDERR_FILENO);); 
+    uint8_t * f = &(shifted_e_digit_tab[i][0]); 
+    int f_index = f_base; 
+    uint16_t f_retenue = 0; 
+    for (;;) { 
+      DEBUG_STATEMENT(1000,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "f_index  : "); dputn(STDERR_FILENO, f_index  ); write_eol(STDERR_FILENO);); 
+      DEBUG_STATEMENT(1000,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "f_retenue: "); dputn(STDERR_FILENO, f_retenue); write_eol(STDERR_FILENO);); 
+      const uint16_t f_v = *(f + f_index); 
+      if (f_v == DECIMAL_EOF_BYTE) { 
+	if (f_retenue != 0) *(f + f_index) = f_retenue; 
+	break; 
+      }; 
+      const uint16_t m_v = f_v * i + f_retenue; 
+      *(f + f_index) = m_v % 100; 
+      f_retenue = m_v / 100; 
+      f_index++; 
+      if (f_index == DECIMAL_SIZE) { if (f_retenue != 0) { assert(false); goto label__e_is_pos_infinity; }; break; }; 
+    }; 
+    f_index = f_base; 
+    for (;;) { 
+      if (0 != *(f + f_index)) break; 
+      *(f + f_index) = DECIMAL_EOF_BYTE; 
+      f_index++; 
+      if (f_index == DECIMAL_SIZE) goto label__error__internal; 
+    }; 
+    f_index = DECIMAL_SIZE; 
+    for (;;) { 
+      f_index--; 
+      if (f_index == 0) goto label__error__internal; 
+      if (DECIMAL_EOF_BYTE == *(f + f_index)) continue; 
+      if (0 != *(f + f_index)) break; 
+      *(f + f_index) = DECIMAL_EOF_BYTE; 
+    }; 
+    DEBUG_STATEMENT(100,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_digit_tab["); dputn(STDERR_FILENO, i); write_string(STDERR_FILENO, "] = "); decimal__print_debug_ln_r(STDERR_FILENO, decimal_env, &shifted_e_digit_tab[i]);); 
+    //DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_digit_tab[i] = "); decimal__print_debug_ln_r(STDERR_FILENO, decimal_env, &shifted_e_digit_tab[i]);); 
+    //DEBUG_STATEMENT(1000,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "shifted_e_digit_tab[i] = "); decimal__print_raw_r(STDERR_FILENO, &shifted_e_digit_tab[i]); write_eol(STDERR_FILENO);); 
+  }; 
+  
+  // For early starting and early stopping, we compute two helpful indices. 
+  // NB:  99 x 01 00 99 = 99 98 01 -> the same number of digits! So lookedup_index_max could be 100. 
+  int lookedup_index_max = 0; 
+  for (;;) { 
+    lookedup_index_max++; 
+    if (lookedup_index_max == DECIMAL_BASE) break; 
+    const uint8_t * f = &(shifted_e_digit_tab[lookedup_index_max][0]); 
+    if (*(f + shifted_e_first_index + 1) == DECIMAL_EOF_BYTE) { continue; }; 
+    if (*(f + shifted_e_first_index + 1) == 0) continue; 
+    break; 
+  }; 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "lookedup_index_max: "); dputn(STDERR_FILENO, lookedup_index_max); write_eol(STDERR_FILENO);); 
+  
+  //assert(false); 
+  
+  int lookedup_index_max2 = DECIMAL_BASE; //DECIMAL_BASE + 1; //DECIMAL_BASE; //100; //lookedup_index_max - 1; 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "lookedup_index_max2: "); dputn(STDERR_FILENO, lookedup_index_max2); write_eol(STDERR_FILENO);); 
+  
+  //uint8_t c_digits[DECIMAL_SIZE]; 
+  uint8_t * c_digits = *(c_r); 
+  int c_index = DECIMAL_SIZE_MINUS1; 
+  //decimal_t dividende; 
+  //bcopy(d, dividende, DECIMAL_SIZE); 
+  //uint8_t * g = &(dividende[0]); 
+  uint8_t * g = &(shifted_d[0]); 
+
+  // Now, the actual computation 
+  for (;;) { 
+    // First, we compute the quotient digit in looking for digit-multiple of 'shifted_e' that is lower or equal than 'shifted_d'. 
+    int lookup_index; 
+    { 
+      const uint8_t g_top_digit = *(g + DECIMAL_SIZE_MINUS1); 
+      if ((g_top_digit != DECIMAL_EOF_BYTE) && (g_top_digit != 0)) { 
+	//if (DECIMAL_BASE == lookedup_index_max) { looked_index = 99; goto label__lookup_index__found; } // It does happen:  99 x 01_00_99 = 99_98_01 -> the same number of digits! 
+	lookup_index = lookedup_index_max; 
+	for (;;) { 
+	  if (lookedup_index_max2 == lookup_index) { break; } 
+	  const uint8_t * f = &(shifted_e_digit_tab[lookup_index][0]); 
+	  int greater_or_equal_huh = false; 
+	  { 
+	    int g_index = DECIMAL_SIZE_MINUS1; 
+	    int f_index = DECIMAL_SIZE_MINUS1; 
+	    for (;;) { 
+	      const uint8_t g_v = *(g + g_index); 
+	      const uint8_t f_v = *(f + f_index); 
+	      if (f_v == DECIMAL_EOF_BYTE) { if (g_v == DECIMAL_EOF_BYTE) { lookup_index++; greater_or_equal_huh = true; }; break; }; 
+	      if (g_v == DECIMAL_EOF_BYTE) { greater_or_equal_huh = true; break; }; 
+	      if (g_v > f_v) break; 
+	      if (g_v < f_v) { greater_or_equal_huh = true; break; }; 
+	      g_index--; 
+	      f_index--; 
+	      if (g_index == 0) { lookup_index++; greater_or_equal_huh = true; break; }; 
+	    }; 
+	  }; 
+	  if (greater_or_equal_huh) break; 
+	  lookup_index++; 
+	  //if (lookup_index == lookedup_index_max2) break; 
+	}; 
+	lookup_index--; 
+      } 
+      else { 
+	const uint8_t g_second_digit = *(g + DECIMAL_SIZE - 2); 
+	if ((g_second_digit != DECIMAL_EOF_BYTE) && (g_second_digit != 0)) { 
+	  lookup_index = 1; 
+	  for (;;) { 
+	    if (lookedup_index_max == lookup_index) { break; } 
+	    const uint8_t * f = &(shifted_e_digit_tab[lookup_index][0]); 
+	    int greater_or_equal_huh = false; 
+	    { 
+	      int g_index = DECIMAL_SIZE - 2; 
+	      int f_index = DECIMAL_SIZE - 2; 
+	      for (;;) { 
+		const uint8_t g_v = *(g + g_index); 
+		const uint8_t f_v = *(f + f_index); 
+		if (f_v == DECIMAL_EOF_BYTE) { if (g_v == DECIMAL_EOF_BYTE) { lookup_index++; greater_or_equal_huh = true; }; break; }; 
+		if (g_v == DECIMAL_EOF_BYTE) { greater_or_equal_huh = true; break; }; 
+		if (g_v > f_v) break; 
+		if (g_v < f_v) { greater_or_equal_huh = true; break; }; 
+		g_index--; 
+		f_index--; 
+		if (g_index == 0) { lookup_index++; greater_or_equal_huh = true; break; }; 
+	      }; 
+	    };
+	    if (greater_or_equal_huh) break; 
+	    lookup_index++; 
+	    //if (lookup_index == lookedup_index_max) break; 
+	  }; 
+	  lookup_index--; 
+	}
+	else { 
+	  lookup_index = 0; 
+	}; 
+      }; 
+    }; 
+  //label__lookup_index__found:
+    // Quotient digit got computed in 'lookup_index'. 
+    //DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "dividende = "); decimal__print_debug_ln_r(STDERR_FILENO, decimal_env, &dividende);); 
+    //DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "lookup_index: "); dputn(STDERR_FILENO, lookup_index); write_eol(STDERR_FILENO);); 
+    
+    //DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "c_index: "); dputn(STDERR_FILENO, c_index); write_eol(STDERR_FILENO);); 
+    DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] --> NEW LOOP: "); write_string(STDERR_FILENO, "c_digits[c_index] = lookup_index : "); dputs_array(STDERR_FILENO, "c_digits[", int_string__stack(c_index), "] = ", int_string__stack(lookup_index)); write_eol(STDERR_FILENO);); 
+    c_digits[c_index] = lookup_index; 
+    c_index--; 
+    //if (c_index == 239) break; 
+    if (c_index == 0) break; 
+    
+    // Now, to move forward in the computation, 
+    // we have to substract the digit-multiple of 'shifted_e' to 'shifted_d'. 
+    if (lookup_index > 0) { 
+      const uint8_t * f = &(shifted_e_digit_tab[lookup_index][0]); 
+      DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] SUBSTRACT: "); write_string(STDERR_FILENO, "shifted_e_digit_tab[lookup_index] = "); decimal__print_debug_ln_r(STDERR_FILENO, decimal_env, &(shifted_e_digit_tab[lookup_index]));); 
+      int fg_index = f_base; 
+      //DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] SUBSTRACT: "); write_string(STDERR_FILENO, "f_base = "); dputn(STDERR_FILENO, f_base); write_eol(STDERR_FILENO);); 
+      for (;;) { 
+	const uint8_t f_v = *(f + fg_index); 
+	if (f_v != DECIMAL_EOF_BYTE) break; 
+	fg_index++; 
+	if (fg_index == DECIMAL_SIZE) goto label__error__malformed_number; 
+      }; 
+      //DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "fg_index = "); dputn(STDERR_FILENO, fg_index); write_eol(STDERR_FILENO);); 
+      fg_index--; 
+      uint8_t retenue = 0; 
+      for (;;) { 
+	fg_index++; 
+	//DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "fg_index = "); dputn(STDERR_FILENO, fg_index); write_eol(STDERR_FILENO);); 
+	if (fg_index == DECIMAL_SIZE) { if (0 != retenue) { goto label__error__internal; }; break; }; 
+	const uint8_t g_v = *(g + fg_index); 
+	const uint8_t f_v = *(f + fg_index); 
+	DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] SUBSTRACT: "); write_string(STDERR_FILENO, "g_v | f_v | retenue = "); dputn(STDERR_FILENO, g_v); write_string(STDERR_FILENO, " | "); dputn(STDERR_FILENO, f_v); write_string(STDERR_FILENO, " | "); dputn(STDERR_FILENO, retenue); write_eol(STDERR_FILENO);); 
+	if (f_v == DECIMAL_EOF_BYTE) { 
+	  if (0 == retenue) break; 
+	  if (g_v == DECIMAL_EOF_BYTE) goto label__error__internal; 
+	  if (g_v > 0) { (*(g + fg_index)) --; break; }; 
+	  if (*(g + fg_index + 1) == DECIMAL_EOF_BYTE) goto label__error__internal; 
+	  if (*(g + fg_index + 1) == 0) goto label__error__internal; 
+	  (*(g + fg_index + 1)) --; 
+	  break; 
+	}; 
+	if (g_v == DECIMAL_EOF_BYTE) { 
+	  // Could happen in the decimal part of 'g'. 
+	  *(g + fg_index) = 100 - f_v - retenue; 
+	  retenue = 1; 
+	  continue; 
+	}; 
+	const uint8_t greater_huh = (g_v < (f_v + retenue)); 
+	*(g + fg_index) += -f_v - retenue + (greater_huh ? 100 : 0); 
+	retenue = (greater_huh ? 1 : 0); 
+      }; 
+      DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] POST SUBSTRACT: "); write_string(STDERR_FILENO, "dividende = "); decimal__print_debug_ln_r(STDERR_FILENO, decimal_env, &shifted_d);); 
+      
+      // The substraction could have led to leading zeroes in 'g'; so removing them. 
+      { 
+	int g_index = DECIMAL_SIZE; 
+	for (;;) { 
+	  g_index--; 
+	  if (g_index == 0) break; // Possible in case of 'g' being null. 
+	  const uint8_t g_v = *(g + g_index); 
+	  if (DECIMAL_EOF_BYTE == g_v) continue; 
+	  if (0 == g_v) { 
+	    *(g + g_index) = DECIMAL_EOF_BYTE; 
+	    continue; 
+	  }; 
+	  break; 
+	}; 
+      }; 
+    }; // substraction completed 
+    DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] POST NORMALIZATION: "); write_string(STDERR_FILENO, "dividende = "); decimal__print_debug_ln_r(STDERR_FILENO, decimal_env, &shifted_d);); 
+    
+    // Before doing anything, checking whether 'g' is null, meaning that there's nothing left to be done. 
+    { 
+      int g_index = 0; 
+      int is_zero_huh = true; 
+      for (;;) { 
+	g_index++; 
+	if (g_index == DECIMAL_SIZE) break; 
+	const uint8_t g_v = *(g + g_index); 
+	if (g_v == DECIMAL_EOF_BYTE) continue; 
+	if (g_v == 0) continue; 
+	is_zero_huh = false; 
+	break; 
+      }; 
+      if (is_zero_huh) break; 
+    }; 
+    
+    // shifting 'dividende' by one digit 
+    { 
+      bcopy(g + 1, g + 2, DECIMAL_SIZE - 2); 
+      *(g + 1) = DECIMAL_EOF_BYTE; 
+    }; 
+    DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] POST SHIFTING: "); write_string(STDERR_FILENO, "dividende = "); decimal__print_debug_ln_r(STDERR_FILENO, decimal_env, &shifted_d);); 
+
+    // Iterating on finding the next digit. 
+  }; 
+  // DONE! 
+  
+  // Either we reached the end of 'c', either 'shifted_e' was an exact multiple of 'shifted_d'. 
+  
+  const uint8_t c_len = DECIMAL_SIZE_MINUS1 - c_index; 
+  DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "c_len: "); dputn(STDERR_FILENO, c_len); write_eol(STDERR_FILENO);); 
+  
+  // Writing the result into 'd' 
+  *d = same_sign_huh ? DECIMAL_STATUS__POS : DECIMAL_STATUS__NEG; 
+  const uint8_t c_N_index = c_N + DECIMAL_FIXED_POINT_INDEX; 
+  if (normalize_c_huh) { 
+#if 0 
+    if (0 == c_N) { 
+      *c_digits = same_sign_huh ? 1 : -1; 
+    } 
+    else { 
+      *c_digits = same_sign_huh ? c_N : -c_N; 
+    }; 
+#else 
+    *c_digits = *d; 
+    if (NULL != c_N_ref) { *c_N_ref = c_N; }; 
+#endif 
+    for (int i = 1; i <= c_index; i++) { 
+      c_digits[i] = 0; 
+    }; 
+    //quotient__print_ln_r(STDERR_FILENO, (decimal_t *)(c_digits), c_N); 
+  }; 
+  { 
+    int d_index = DECIMAL_SIZE; 
+    for (;;) { 
+      d_index--; 
+      if (d_index == c_N_index) break; 
+      *(d + d_index) = DECIMAL_EOF_BYTE; 
+    }; 
+    const uint8_t * c = c_digits + DECIMAL_SIZE_MINUS1; 
+    for (int i = 0; i < c_len; i++) { 
+      *(d + d_index) = *c; 
+      c--; 
+      d_index--; 
+      if (d_index == 0) break; 
+    }; 
+    for (;;) { 
+      if (d_index < DECIMAL_FIXED_POINT_INDEX) break; 
+      *(d + d_index) = 0; 
+      d_index--; 
+    }; 
+    for (;;) { 
+      if (d_index == 0) break; 
+      *(d + d_index) = DECIMAL_EOF_BYTE; 
+      d_index--; 
+    }; 
+    d_index = c_N_index; 
+    for (;;) { 
+      d_index++; 
+      if (d_index > DECIMAL_FIXED_POINT_INDEX) break; 
+      if (*(d + d_index) != DECIMAL_EOF_BYTE) continue; 
+      *(d + d_index) = 0; 
+    }; 
+  }; 
+  //DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "d_r = "); decimal__print_raw_r(STDERR_FILENO, d_r); write_eol(STDERR_FILENO);); 
+  
+  // DONE 
+  goto label__exit; 
+  
+  
+  
+  assert(false); 
+  
+  
+ label__e_is_pos_infinity: { 
+    *d = DECIMAL_STATUS__POS_EPSILON; 
+    DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] EXIT: "); write_string(STDERR_FILENO, "DECIMAL_STATUS__POS_EPSILON"); write_eol(STDERR_FILENO);); 
+    return DECIMAL__OK; 
+  }; 
+  
+ label__exit: { 
+    DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] EXIT: "); write_string(STDERR_FILENO, "DECIMAL__OK"); write_eol(STDERR_FILENO);); 
+    return DECIMAL__OK; 
+  };
+  
+ label__error__malformed_number: { 
+    DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] EXIT: "); write_string(STDERR_FILENO, "DECIMAL__MALFORMED_NUMBER"); write_eol(STDERR_FILENO);); 
+    return DECIMAL__MALFORMED_NUMBER; 
+  }; 
+  
+ label__error__internal: { 
+    DEBUG_STATEMENT(1,write_string(STDERR_FILENO, "[DEBUG] EXIT: "); write_string(STDERR_FILENO, "DECIMAL__INTERNAL_ERROR"); write_eol(STDERR_FILENO);); 
+    return DECIMAL__INTERNAL_ERROR; 
+  }; 
+}; 
+
+
+
+RETURN_TYPE_T decimal__div_r(decimal_env_t * decimal_env, decimal_t * d_r, const decimal_t * e_r) { 
+  if (d_r == e_r) { 
+    decimal_mantisse__set_eof_r(d_r); 
+    (*d_r)[DECIMAL_STATUS_INDEX] = DECIMAL_STATUS__POS; 
+    (*d_r)[DECIMAL_FIXED_POINT_INDEX] = 1; 
+#ifdef RETURN_ERROR 
+    return DECIMAL__OK; 
+#else 
+    return d_r; 
+#endif 
+  }; 
+  
+  decimal_t c; 
+  return decimal__div_r__aux(decimal_env, d_r, e_r, &c, false, NULL); 
+}; 
+
+
+
+
+// *** INVERSE *** 
+
+//      b = μ0 [ 1 + y0 ] . B^N     { |y0| < 1 ; possibly, adding the condition be 'y0' is the smallest non-negative can add unicity. } 
+//                                  { |y0| < 1/5 , also adds the unicity; and it improves convergence. } 
+//                                  { |y0| < 1/3 , is the actual value; it gains one square, as 2 < 3 < 4 } 
+// 
+// d. Using the serie of squares: 
+//      1 / [1 + x] = [1-x]/[1-x²] = (1-x)(1+x²)/[1-x^4] = (1-x)(1+x²)(1+x^4)/[1-x^8] = (1-x)(1+x²)(1+x^4)(1+x^8)/[1-x^16] 
+//                  = (1-x)(1+x²)(1+x^4)(1+x^8)(1+x^16)(1+x^32)(1+x^64)(1+x^128) / [1-x^256] 
+//                  = (1-x)(1+x²)(1+x^4)(1+x^8)(1+x^16)(1+x^32)(1+x^64)(1+x^128) x (1 + x^256 + O(x^512))  
+//                               { if |x| < 1/2, then |x|^256 < 2^-256 ~ 10^-76,8  } 
+//                               {               with ln(B)/ln(2) = β, B = 2^β, 2^-256 = B^-[256/β] } 
+//                               { therefore, to get 256 digits in base B, one needs to compute 8 x ln(B)/ln(2) squares }  
+//     
+// d. That method doubles the number of computed digits for every step. 
+//    That method needs to compute: 
+//     - 1 digit division                [     256 unit operations ] 
+//     - 8 decimal squares               [ 8 x 512 unit operations ] 
+//     - 7 decimal multiplications       [ 7 x 512 unit operations ] 
+//     - 1 digit division                [     256 unit operations ] 
+//     - one last decimal multiplication [ 1 x 512 unit operations ] 
+//    Which amounts to roughly 16.5 decimal operations [ around 8.5k unit operations ], 
+//    thus a total of roughly 8.5k CPU cycle for one operation. 
+//    So it looks blazingly fast (might be something wrong somewhere). 
+//    Regarding fore-computation, nothing seems to be fore-computable. 
+// 
+//    Adjusted by β = ln(B)/ln(2), [ 8 x β ] squares, [ 16 x β ] decimal operations, [ 8.5k x β ] CPU cycle for one operation. 
+//    In base 100, β = 3.3, 27 squares, 50 decimal operations, 27k CPU cycle for one operation. 
+//    In base 255, β = 8, 64 squares, 128 decimal operations, 66k CPU cycle for one operation. (Longer but there are more information.) 
+// 
+
+enum { decimal__inverse_aux_square__digits_length = DECIMAL_SIZE << 1 }; 
+
+static void decimal__decimal__inverse_aux_square_aux_shift_and_add_r(/*512-sized,0-based*/uint8_t * d, /*256-sized,0-based*/const uint8_t * m, /*0-based*/const int16_t m_shift0, uint8_t * infinity_huh_r) { 
+  if (NULL != infinity_huh_r) *infinity_huh_r = false; 
+
+  if (m_shift0 + DECIMAL_SIZE < 0) return; 
+  
+  { 
+    uint8_t m_is_empty_huh; 
+    m_is_empty_huh = true; 
+    for (int i = 0; i < DECIMAL_SIZE; i++) { 
+      if (m[i] == 0) continue; 
+      if (m[i] == DECIMAL_EOF_BYTE) continue; 
+      m_is_empty_huh = false; 
+      break; 
+    }; 
+    if (m_is_empty_huh) return; 
+  }; 
+  if (m_shift0 >= DECIMAL_SIZE_DOUBLE) { 
+    if (infinity_huh_r != NULL) *infinity_huh_r = true; 
+    return; 
+  }; 
+  
+  int16_t d_index; 
+  int16_t m_index; 
+  if (m_shift0 < 0) { 
+    d_index = 0; 
+    m_index = -m_shift0; 
+  } 
+  else { 
+    d_index = m_shift0; 
+    m_index = 0; 
+  }; 
+  
+  uint16_t v; 
+  uint8_t retenue; 
+  retenue = 0; 
+  for (;;) { 
+    
+    if (d_index >= DECIMAL_SIZE_DOUBLE) { 
+      if (m_index >= DECIMAL_SIZE) { 
+	if (NULL != infinity_huh_r) { *infinity_huh_r = (0 != retenue); }; 
+	return; 
+      }; 
+      const uint8_t m_v = *(m + m_index); 
+      if (NULL != infinity_huh_r) *infinity_huh_r = ((m_v != DECIMAL_EOF_BYTE) || (0 != retenue)); 
+      return; 
+    }; 
+    
+    if (m_index >= DECIMAL_SIZE) { 
+      if (0 == retenue) break; 
+      const uint8_t d_v0 = *(d + d_index); 
+      if (DECIMAL_EOF_BYTE == d_v0) { 
+	*(d + d_index) = 1; 
+	break; 
+      }; 
+      if (d_v0 < DECIMAL_BASE_MINUS1) { 
+	*(d + d_index) += 1; 
+	break; 
+      }; 
+      for (;;) { 
+	*(d + d_index) = 0; 
+	d_index++; 
+	if (d_index >= DECIMAL_SIZE_DOUBLE) { 
+	  if (NULL != infinity_huh_r) { *infinity_huh_r = true; }; 
+	  return; 
+	}; 
+	const uint8_t d_v0 = *(d + d_index); 
+	if (d_v0 == DECIMAL_EOF_BYTE) { 
+	  *(d + d_index) = 1; 
+	  break; 
+	};  
+	if (d_v0 < DECIMAL_BASE_MINUS1) { 
+	  *(d + d_index) += 1; 
+	  break; 
+	}; 
+	break; 
+      }; 
+      break; 
+    }; 
+    
+    const uint8_t d_v0 = *(d + d_index); 
+    const uint8_t m_v0 = *(m + m_index); 
+    const uint8_t d_v  = (d_v0 == DECIMAL_EOF_BYTE) ? 0 : d_v0; 
+    const uint8_t m_v  = (m_v0 == DECIMAL_EOF_BYTE) ? 0 : m_v0; 
+    v = ((uint16_t)d_v) + ((uint16_t)m_v) + ((uint16_t)retenue); 
+    if (v >= DECIMAL_BASE) { 
+      v -= DECIMAL_BASE; 
+      retenue = 1; 
+    } 
+    else { 
+      retenue = 0; 
+    }; 
+    *(d + d_index) = v; 
+    if ((m_v0 == DECIMAL_EOF_BYTE) && (0 == retenue)) break; 
+    d_index++; 
+    m_index++; 
+  }; 
+  
+}; 
+
+
+static void decimal__inverse_aux_square_aux_shift_and_add__v_low_r(decimal_env_t * decimal_env, /*512-sized,0-based*/uint8_t * d, /*X-sized,0-based*/const uint8_t * m, const int16_t m_size, /*low-digit based*/const int16_t m_shift0, uint8_t * infinity_huh_r) { 
+  //DEBUG_STATEMENT(1,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "low_d = [", int_string__stack(DECIMAL_SIZE_DOUBLE), "]"); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, d, DECIMAL_SIZE_DOUBLE);); 
+  //DEBUG_STATEMENT(1,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "low_m = [", int_string__stack(DECIMAL_SIZE), "]"); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, m, DECIMAL_SIZE);); 
+  
+  if (infinity_huh_r != NULL) *infinity_huh_r = false; 
+  
+  //if (m_shift0 <= -DECIMAL_SIZE) return; 
+  if (m_shift0 + m_size < 0) return; 
+  
+  { 
+    uint8_t m_is_empty_huh; 
+    m_is_empty_huh = true; 
+    for (int i = 0; i < m_size; i++) { 
+      if (m[i] == 0) continue; 
+      if (m[i] == DECIMAL_EOF_BYTE) continue; 
+      m_is_empty_huh = false; 
+      break; 
+    }; 
+    if (m_is_empty_huh) return; 
+  }; 
+  if (m_shift0 >= DECIMAL_SIZE_DOUBLE) { 
+    if (infinity_huh_r != NULL) *infinity_huh_r = true; 
+    return; 
+  }; 
+  
+  int16_t d_index; 
+  int16_t m_index; 
+  if (m_shift0 < 0) { 
+    d_index = 0; 
+    m_index = -m_shift0; 
+  } 
+  else { 
+    d_index = m_shift0; 
+    m_index = 0; 
+  }; 
+  
+  uint16_t v; 
+  uint8_t retenue; 
+  retenue = 0; 
+  for (;;) { 
+    
+    if (d_index >= DECIMAL_SIZE_DOUBLE) { 
+      if (0 != retenue) { 
+	if (NULL != infinity_huh_r) { *infinity_huh_r = false; }; 
+	return; 
+      }; 
+      if (m_index >= m_size) { return; }; 
+      const uint8_t m_v = *(m + m_index); 
+      if (NULL != infinity_huh_r) *infinity_huh_r = (m_v != DECIMAL_EOF_BYTE); 
+      return; 
+    }; 
+    
+    if (m_index >= m_size) { 
+      if (0 == retenue) break; 
+      const uint8_t d_v0 = *(d + d_index); 
+      if (DECIMAL_EOF_BYTE == d_v0) { 
+	*(d + d_index) = 1; 
+	break; 
+      }; 
+      if (d_v0 < DECIMAL_BASE_MINUS1) { 
+	*(d + d_index) += 1; 
+	break; 
+      }; 
+      for (;;) { 
+	*(d + d_index) = 0; 
+	d_index++; 
+	if (d_index >= DECIMAL_SIZE_DOUBLE) { 
+	  if (NULL != infinity_huh_r) { *infinity_huh_r = true; }; 
+	  return; 
+	}; 
+	const uint8_t d_v0 = *(d + d_index); 
+	if (d_v0 == DECIMAL_EOF_BYTE) { 
+	  *(d + d_index) = 1; 
+	  break; 
+	}; 
+	if (d_v0 < DECIMAL_BASE_MINUS1) { 
+	  *(d + d_index) += 1; 
+	  break; 
+	}; 
+      }; 
+      break; 
+    }; 
+    
+    const uint8_t d_v0 = *(d + d_index); 
+    const uint8_t m_v0 = *(m + m_index); 
+    const uint8_t d_v  = (d_v0 == DECIMAL_EOF_BYTE) ? 0 : d_v0; 
+    const uint8_t m_v  = (m_v0 == DECIMAL_EOF_BYTE) ? 0 : m_v0; 
+    v = ((uint16_t)d_v) + ((uint16_t)m_v) + ((uint16_t)retenue); 
+    if (v >= DECIMAL_BASE) { 
+      v -= DECIMAL_BASE; 
+      retenue = 1; 
+    } 
+    else { 
+      retenue = 0; 
+    }; 
+    *(d + d_index) = v; 
+    if ((m_v0 == DECIMAL_EOF_BYTE) && (0 == retenue)) break; 
+    d_index++; 
+    m_index++; 
+  }; 
+}; 
+
+
+static void decimal__inverse_aux_square__get_last_and_first_indexes(const uint8_t * d, uint8_t * d_last_index_r, uint8_t * d_first_index_r, uint8_t * empty_huh_r) { 
+  //if (empty_huh_r != NULL) { *empty_huh_r = false; }; 
+  goto label__start; 
+  
+  label__empty: { 
+    if (NULL !=  d_last_index_r) *d_last_index_r  = 0; 
+    if (NULL != d_first_index_r) *d_first_index_r = UINT8_MAX; 
+    if (NULL !=     empty_huh_r) *empty_huh_r     = true; 
+    return; 
+  }; 
+  
+  label__start: {}; 
+  uint8_t d_last_index; 
+  { 
+    int16_t d_index = DECIMAL_SIZE; 
+    for (;;) { 
+      d_index--; 
+      if (d_index < 0) goto label__empty; 
+      const uint8_t d_value = *(d + d_index); 
+      if (d_value == DECIMAL_EOF_BYTE) continue; 
+      if (d_value == 0) continue; 
+      break; 
+    }; 
+    d_last_index = d_index; 
+  }; 
+  
+  uint8_t d_first_index; 
+  { 
+    int16_t d_index = -1; 
+    for (;;) { 
+      d_index++; 
+      if (d_index >= DECIMAL_SIZE) goto label__empty; 
+      const uint8_t d_value = *(d + d_index); 
+      if (d_value == DECIMAL_EOF_BYTE) continue; 
+      if (d_value == 0) continue; 
+      break; 
+    }; 
+    d_first_index = d_index; 
+  }; 
+  
+  if (NULL !=  d_last_index_r) *d_last_index_r  = d_last_index; 
+  if (NULL != d_first_index_r) *d_first_index_r = d_first_index; 
+  if (NULL !=     empty_huh_r) *empty_huh_r     = false; 
+  return; 
+}; 
+
+
+
+static void decimal__inverse_aux_mult_digit_r(/*256-sized,0-based*/const uint8_t * m2, const uint8_t m1_digit, /*257-sized,0-based*/uint8_t * result, const uint16_t result_size, uint8_t * infinity_huh_r) { 
+  if (infinity_huh_r != NULL) *infinity_huh_r = false; 
+  
+  if (result_size <= 0) { 
+    if (infinity_huh_r != NULL) *infinity_huh_r = true; 
+    return; 
+  }; 
+  
+  if (0 == m1_digit) { 
+    memset(result, DECIMAL_EOF_BYTE, result_size); 
+    return; 
+  }; 
+  
+  // 'result' should be one digit larger than 'm2' to store the result and to prevent overflow. 
+  // First, let's check that 'result' size is not too small. 
+  int16_t m2_len; 
+  m2_len = 0; 
+  for (;;) { 
+    if (m2_len >= DECIMAL_SIZE) break; 
+    if (*(m2 + m2_len) == DECIMAL_EOF_BYTE) break; 
+    m2_len++; 
+  }; 
+  if (0 == m2_len) { 
+    memset(result, DECIMAL_EOF_BYTE, result_size); 
+    return; 
+  }; 
+  
+  if (result_size < m2_len) { 
+    if (infinity_huh_r != NULL) *infinity_huh_r = true; 
+    return; 
+  }; 
+  
+  if (1 == m1_digit) { 
+    bcopy(m2, result, m2_len); 
+    memset(result + m2_len, DECIMAL_EOF_BYTE, result_size - m2_len); 
+    return; 
+  }; 
+  
+  if (result_size > m2_len) { 
+    // Then the operation can't overflow. 
+    int16_t index   = 0; 
+    uint8_t retenue = 0; 
+    for (;;) { 
+      if (index == m2_len) { 
+	if (0 != retenue) { 
+	  *(result + index) = retenue; 
+	  index++; 
+	}; 
+	memset(result + index, DECIMAL_EOF_BYTE, result_size - index); 
+	return; 
+      }; 
+      const uint8_t m2_digit = *(m2 + index); 
+      assert(m2_digit != DECIMAL_EOF_BYTE); // By definition of 'm2_len'. 
+      const uint16_t m_v      = ((uint16_t) m2_digit) * ((uint16_t) m1_digit) + ((uint16_t) retenue); 
+      *(result + index)       = DECIMAL_BASE__GET_REMAINDER(m_v); //m_v % DECIMAL_BASE; 
+      retenue                 = DECIMAL_BASE__GET_QUOTIENT(m_v); //m_v / DECIMAL_BASE; 
+      index++; 
+    }; 
+    assert(false); 
+  }; 
+  
+  
+  //assert(result_size == m2_len); 
+  { 
+    // The operation could overflow. 
+    int16_t index   = 0; 
+    uint8_t retenue = 0; 
+    for (;;) { 
+      if (index == m2_len) { 
+	if (NULL != infinity_huh_r) { *infinity_huh_r = true; }; 
+	return; 
+      }; 
+      const uint8_t m2_digit = *(m2 + index); 
+      assert(m2_digit != DECIMAL_EOF_BYTE); // By definition of 'm2_len'. 
+      const uint16_t m_v      = ((uint16_t) m2_digit) * ((uint16_t) m1_digit) + ((uint16_t) retenue); 
+      *(result + index)       = DECIMAL_BASE__GET_REMAINDER(m_v); //m_v % DECIMAL_BASE; 
+      retenue                 = DECIMAL_BASE__GET_QUOTIENT(m_v); //m_v / DECIMAL_BASE; 
+      index++; 
+    }; 
+    assert(false); 
+  }; 
+
+  assert(false); 
+}; 
+
+
+
+
+
+static void decimal__inverse_aux_square_aux_distinct_r(decimal_env_t * decimal_env, /*high-digit based, 256-sized, N[255] = 0*/const uint8_t * high_shifted_d, /*result should have the same properties*/uint8_t * high_squared, uint8_t * empty_huh_r) { 
+  assert(high_shifted_d != high_squared); 
+  // Two ways to compute squares: 
+  //  - the standard digit-multiplication & shift & add method; 
+  //  - stating that such a number is a vector on the basis <1,B^-1,B^-2,…>, and such a square operation requires n(n+1)/2 multiplications, and (n-1)² additions [and then a normalization]. 
+  //    But, in that second method, numbers can be as long as three digits… Not sure that this is a gain. 
+  // TO_BE_RECKONED 
+  if (empty_huh_r != NULL) { *empty_huh_r = false; }; 
+
+  // 'high_shifted_d' is high-digit based, 256-sized, and the N of the digit 255 is 0. 
+  // 'high_squared' will be the same (we need to be able to iterate) 
+  // However, to compute a square, we need to be low-digit based. 
+  // Therefore, the intermediate result will be stored in a 512-sized variable, and low-digit based. 
+  uint8_t low_square_digits[DECIMAL_SIZE_DOUBLE]; 
+  
+  uint8_t d_empty_huh; 
+  uint8_t d_first_index; 
+  uint8_t d_last_index; 
+  decimal__inverse_aux_square__get_last_and_first_indexes(high_shifted_d, &d_last_index, &d_first_index, &d_empty_huh); 
+  DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "d_first_index: "); dputn(STDERR_FILENO, d_first_index); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "d_last_index : "); dputn(STDERR_FILENO, d_last_index ); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "d_empty_huh  : "); dputs(STDERR_FILENO, d_empty_huh ? "TRUE" : "FALSE"); write_eol(STDERR_FILENO);); 
+  if (d_empty_huh) { 
+    bzero(high_squared, DECIMAL_SIZE); 
+    if (empty_huh_r != NULL) {  *empty_huh_r = true; }; 
+    return; 
+  }; 
+  const int16_t d_len     = d_last_index - d_first_index + 1; 
+  const int16_t d_last_N  = ((int16_t) d_last_index)  - ((int16_t) DECIMAL_SIZE_MINUS1); 
+  const int16_t d_first_N = ((int16_t) d_first_index) - ((int16_t) DECIMAL_SIZE_MINUS1); 
+  DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "d_len        : "); dputn(STDERR_FILENO, d_len        ); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "d_last_N     : "); dputn(STDERR_FILENO, d_last_N     ); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "d_first_N    : "); dputn(STDERR_FILENO, d_first_N    ); write_eol(STDERR_FILENO);); 
+  
+  // How many different digits the multiplier has? 
+  uint8_t multiplier_digit_frequency[DECIMAL_BASE]; 
+  bzero(multiplier_digit_frequency, sizeof(multiplier_digit_frequency)); 
+  for (int d_index = d_first_index; d_index <= d_last_index; d_index++) { 
+    const uint8_t d_digit = *(high_shifted_d + d_index); 
+    assert(d_digit < DECIMAL_BASE); 
+    multiplier_digit_frequency[d_digit] ++; 
+  }; 
+  uint8_t d_distinct_digit_count; 
+  d_distinct_digit_count = 0; 
+  for (int d_digit = 0; d_digit < DECIMAL_BASE; d_digit++) { 
+    if (0 == multiplier_digit_frequency[d_digit]) continue; 
+    d_distinct_digit_count++; 
+  }; 
+  DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "d_distinct_digit_count: "); dputn(STDERR_FILENO, d_distinct_digit_count); write_eol(STDERR_FILENO);); 
+  
+  assert(0 != d_distinct_digit_count); // Emptyness should have been caught earlier. 
+  
+  uint8_t d_digits[d_distinct_digit_count]; 
+  { 
+    uint8_t d_digits_index = 0; 
+    for (int d_digit = 0; d_digit < DECIMAL_BASE; d_digit++) { 
+      if (0 == multiplier_digit_frequency[d_digit]) continue; 
+      d_digits[d_digits_index] = d_digit; 
+      d_digits_index++; 
+    }; 
+  }; 
+  
+  // Fore-computation of the multiplications of the multiplicand by the digits of the multiplier. 
+  //decimal_t m2_digit_multiple[d_distinct_digit_count]; // Allocation 
+  enum { ONE_DIGIT_MULTIPLE_SIZE = DECIMAL_SIZE + 1 }; 
+  uint8_t   m2_digit_multiple[d_distinct_digit_count][ONE_DIGIT_MULTIPLE_SIZE]; // Allocation 
+  uint8_t * multiplicand_digit_multiple[DECIMAL_BASE]; // Quick access 
+  { 
+    bzero(multiplicand_digit_multiple, sizeof(multiplicand_digit_multiple)); 
+    for (uint8_t d_digits_index = 0; d_digits_index < d_distinct_digit_count; d_digits_index++) { 
+      const uint8_t d_digit = d_digits[d_digits_index]; 
+      //decimal_t * m = &(m2_digit_multiple[d_digits_index]); 
+      uint8_t * m = &(m2_digit_multiple[d_digits_index][0]); 
+      //multiplicand_digit_multiple[d_digit] = (uint8_t *)m; 
+      multiplicand_digit_multiple[d_digit] = m; 
+    }; 
+  }; 
+  
+  
+  { // Computation
+    // For these computations, 'high_squared' is temporarily used to store 'low_shifted_d'.  
+    uint8_t * low_shifted_d; 
+    low_shifted_d = high_squared; 
+    bcopy((high_shifted_d + d_first_index), low_shifted_d, d_len); 
+    memset(low_shifted_d + d_len, DECIMAL_EOF_BYTE, DECIMAL_SIZE - d_len); 
+    DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "low_shifted_d = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, low_shifted_d, DECIMAL_SIZE);); 
+    
+    
+    { 
+      uint8_t infinity_huh; 
+      for (uint8_t d_digits_index = 0; d_digits_index < d_distinct_digit_count; d_digits_index++) { 
+	const uint8_t d_digit = d_digits[d_digits_index]; 
+	uint8_t * result = multiplicand_digit_multiple[d_digit]; 
+	//const int16_t result_size = ONE_DIGIT_MULTIPLE_SIZE; 
+	//DEBUG_STATEMENT(1000,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "result = "); decimal__print_raw_ln_r(STDERR_FILENO, decimal_env, (decimal_t *)result);); 
+	//decimal__mult_aux_digit_r(low_shifted_d, d_digit, result, &infinity_huh); 
+	decimal__inverse_aux_mult_digit_r(/*256-sized,0-based*/low_shifted_d, d_digit, result, /*const uint16_t result_size*/ONE_DIGIT_MULTIPLE_SIZE, &infinity_huh); 
+	DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "result@", int_string__stack(d_digit), " = [", int_string__stack(ONE_DIGIT_MULTIPLE_SIZE), "]"); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, result, ONE_DIGIT_MULTIPLE_SIZE);); 
+	//DEBUG_STATEMENT(1000,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "result = "); decimal__print_raw_ln_r(STDERR_FILENO, decimal_env, (decimal_t *)result);); 
+	//DEBUG_STATEMENT(1000,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "infinity_huh: "); dputn(STDERR_FILENO, infinity_huh); write_eol(STDERR_FILENO);); 
+	assert(!infinity_huh); 
+      }; 
+    }; 
+    
+  }; 
+  
+  // Shifting and adding them up altogether. 
+  { 
+    memset(low_square_digits, DECIMAL_EOF_BYTE, sizeof(low_square_digits)); 
+    uint8_t infinity_huh; 
+    //for (uint8_t d_index = d_first_index; d_index <= d_last_index; d_index++) { 
+    for (uint8_t d_index = 0; d_index < d_len; d_index++) { 
+      const uint8_t   d_digit                = *(high_shifted_d + d_index + d_first_index); 
+      const uint8_t * shifted_d__by__d_digit = multiplicand_digit_multiple[d_digit]; 
+      //const int16_t   this_shift             = d_first_N + (((int16_t) d_index) - ((int16_t) DECIMAL_SIZE_MINUS1)); 
+      const int16_t   this_shift             = ((int16_t) d_index); 
+      DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "this_shift    : "); dputn(STDERR_FILENO, this_shift    ); write_eol(STDERR_FILENO);); 
+      //DEBUG_STATEMENT(1,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "shifted_d__by__d_digit[", int_string__stack(d_digit), "] = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, shifted_d__by__d_digit, DECIMAL_SIZE);); 
+      DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "shifted_d__by__d_digit[", int_string__stack(d_digit), "] = [", int_string__stack(ONE_DIGIT_MULTIPLE_SIZE),"]"); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, shifted_d__by__d_digit, ONE_DIGIT_MULTIPLE_SIZE);); 
+      DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "low_square_digits@", int_string__stack(d_digit), " = [", int_string__stack(sizeof(low_square_digits)),"]"); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, low_square_digits, sizeof(low_square_digits));); 
+      //decimal__decimal__inverse_aux_square_aux_shift_and_add_r(/*512-sized,0-based*/low_square_digits, /*256-sized,0-based*/shifted_d__by__d_digit, /*0-based*//*m_shift*/this_shift, &infinity_huh); 
+      //decimal__inverse_aux_square_aux_shift_and_add__v_low_r(decimal_env, /*512-sized,0-based*/result, /*256-sized,0-based*/m2_by_m1_digit, /*low-digit based*/m1_digit_shift, &infinity_huh); 
+      decimal__inverse_aux_square_aux_shift_and_add__v_low_r(decimal_env, /*512-sized,0-based*/low_square_digits, /*X-sized,0-based*/shifted_d__by__d_digit, /*m1_size*/ONE_DIGIT_MULTIPLE_SIZE, /*low-digit based*/this_shift, &infinity_huh); 
+      
+      //DEBUG_STATEMENT(1,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "low_square_digits@", int_string__stack(d_index), " = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, low_square_digits, DECIMAL_SIZE);); 
+      //assert(d_index != 11); 
+      assert(!infinity_huh); 
+    }; 
+  }; 
+  
+  DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "low_square_digits = [", int_string__stack(sizeof(low_square_digits)), "]"); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, low_square_digits, sizeof(low_square_digits));); 
+  
+  // Normalization 
+  { 
+    uint8_t * result; 
+    int16_t   result_first_index; 
+    int16_t   result_last_index; 
+    result = low_square_digits; 
+    enum { result_sizeof = sizeof(low_square_digits) } ; 
+    
+    DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "result = [", int_string__stack(result_sizeof), "]"); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, result, result_sizeof);); 
+    
+    //decimal__inverse_aux_square__get_last_and_first_indexes(result, &result_last_index, &result_first_index, &result_empty_huh); 
+    
+    { 
+      result_last_index = result_sizeof; 
+      for (;;) { 
+	result_last_index--; 
+	if (result_last_index < 0) break; 
+	const uint8_t d_value = result[result_last_index]; 
+	if (d_value == DECIMAL_EOF_BYTE) continue; 
+	if (d_value == 0) continue; 
+	break; 
+      }; 
+    }; 
+    DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "result_last_index : ", int_string__stack(result_last_index)); write_eol(STDERR_FILENO);); 
+    
+    { 
+      const uint8_t result_empty_huh = (result_last_index < 0); 
+      if (result_empty_huh) { 
+	bzero(high_squared, DECIMAL_SIZE); 
+	return; 
+      }; 
+    }; 
+
+#if 1 
+    // As the computation was low-digit based, the first digit must be at index 0. 
+    result_first_index = 0; 
+    assert(*(result + result_first_index) != DECIMAL_EOF_BYTE); 
+#else 
+    { 
+      result_first_index = -1; 
+      for (;;) { 
+	result_first_index++; 
+	assert(((size_t) result_first_index) < sizeof(result)); 
+	const uint8_t d_value = result[result_first_index]; 
+	if (d_value == DECIMAL_EOF_BYTE) continue; 
+	if (d_value == 0) continue; 
+	break; 
+      }; 
+    }; 
+#endif 
+    DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "result_first_index: "); dputn(STDERR_FILENO, result_first_index); write_eol(STDERR_FILENO);); 
+
+    { 
+      const uint8_t result_empty_huh = (result_first_index >= result_sizeof); 
+      if (result_empty_huh) { 
+	bzero(high_squared, DECIMAL_SIZE); 
+	return; 
+      }; 
+    }; 
+    
+    const int16_t result_len     = result_last_index - result_first_index + 1; 
+    const int16_t result_first_N = d_first_N << 1; // This works as N[255] is supposed to be 0. 
+    const int16_t result_last_N  = result_first_N + result_len - 1; 
+    DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "result_len    : "); dputn(STDERR_FILENO, result_len    ); write_eol(STDERR_FILENO););
+    DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "result_first_N: "); dputn(STDERR_FILENO, result_first_N); write_eol(STDERR_FILENO););
+    DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "result_last_N : "); dputn(STDERR_FILENO, result_last_N ); write_eol(STDERR_FILENO););
+    
+    { 
+      memset(high_squared, DECIMAL_EOF_BYTE, DECIMAL_SIZE); 
+      int16_t high_squared_index; 
+      high_squared_index = DECIMAL_SIZE_MINUS1 + result_last_N; 
+      int16_t result_index; 
+      result_index = result_last_index; 
+      for (;;) { 
+	if (high_squared_index < 0) break; 
+	if (result_index < 0) break; 
+	*(high_squared + high_squared_index) = *(result + result_index); 
+	high_squared_index--; 
+	result_index--; 
+      }; 
+      high_squared_index = DECIMAL_SIZE_MINUS1 + result_last_N; 
+      for (;;) { 
+	high_squared_index++; 
+	if (high_squared_index >= DECIMAL_SIZE) break; 
+	*(high_squared + high_squared_index) = 0; 
+      }; 
+    }; 
+  }; 
+  
+  DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "high_squared = [" STRINGIFY(DECIMAL_SIZE) "]"); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, high_squared, DECIMAL_SIZE);); 
+  
+  
+}; 
+
+
+static void decimal__inverse_aux_square_r(decimal_env_t * decimal_env, /*high-digit based, 256-sized, N[255] = 0*/const uint8_t * high_shifted_d, /*result should have the same properties*/uint8_t * high_squared, uint8_t * empty_huh_r) { 
+  if (high_shifted_d != high_squared) { 
+    decimal__inverse_aux_square_aux_distinct_r(decimal_env, high_shifted_d, high_squared, empty_huh_r); 
+    return; 
+  }; 
+  
+  uint8_t allocated_high_shifted_d[DECIMAL_SIZE]; 
+  bcopy(high_shifted_d, allocated_high_shifted_d, sizeof(allocated_high_shifted_d)); 
+  decimal__inverse_aux_square_aux_distinct_r(decimal_env, allocated_high_shifted_d, high_squared, empty_huh_r); 
+}; 
+
+
+static void decimal__inverse_aux_complement_to_one_r(decimal_env_t * decimal_env, /*high-digit based, 256-sized, …≤1*/uint8_t * high_shifted_d) { 
+  int16_t d_index; 
+  d_index = 0; 
+  d_index--; 
+  for (;;) { 
+    d_index++; 
+    if (d_index == DECIMAL_SIZE) { 
+      memset(high_shifted_d, DECIMAL_EOF_BYTE, DECIMAL_SIZE); 
+      *(high_shifted_d + DECIMAL_SIZE_MINUS1) = 1; 
+      return; 
+    }; 
+    const uint8_t d_digit = *(high_shifted_d + d_index); 
+    if (d_digit == DECIMAL_EOF_BYTE) continue; 
+    if (d_digit == 0) continue; 
+    break; 
+  }; 
+  { 
+    const uint8_t d_digit = *(high_shifted_d + d_index); 
+    if (d_index == DECIMAL_SIZE_MINUS1) { 
+      assert(1 == d_digit); // 'high_shifted_d' should be lower or equal to 1. 
+      memset(high_shifted_d, DECIMAL_EOF_BYTE, DECIMAL_SIZE); 
+      *(high_shifted_d + DECIMAL_SIZE_MINUS1) = 0; 
+      return; 
+    }; 
+    *(high_shifted_d + d_index) = DECIMAL_BASE - d_digit; 
+    d_index++; 
+  }; 
+  for (;;) { 
+    if (d_index == DECIMAL_SIZE_MINUS1) { break; }; 
+    const uint8_t d_digit0 = *(high_shifted_d + d_index); 
+    const uint16_t actual_digit = ((uint16_t) 1) + ((uint16_t) d_digit0); 
+    *(high_shifted_d + d_index) = DECIMAL_BASE - actual_digit; 
+    d_index++; 
+  }; 
+  assert(d_index == DECIMAL_SIZE_MINUS1); 
+  assert(0 == *(high_shifted_d + d_index)); // 'high_shifted_d' should be lower or equal to 1. 
+}; 
+
+static void decimal__inverse_aux_digit_division_high_r(uint8_t * high_shifted_d, const uint8_t d_lambda, uint8_t * d_lambda_was_null_huh_r) { 
+  if (NULL != d_lambda_was_null_huh_r) *d_lambda_was_null_huh_r = (0 == d_lambda); 
+  if (0 == d_lambda) { return; }; 
+  if (1 == d_lambda) { return; }; 
+  
+  uint8_t retainer = 0; // This thing propagates downward. 
+  uint8_t d_index  = DECIMAL_SIZE_MINUS1; // 'high_shifted_d' is high-digit based. 
+  for (;;) { 
+    const uint8_t d_digit0 = *(high_shifted_d + d_index); 
+    uint8_t d_digit; 
+    if (d_digit0 == DECIMAL_EOF_BYTE) { 
+      if (0 == retainer) break; 
+      d_digit = 0; 
+    } 
+    else { 
+      d_digit = d_digit0; 
+    }; 
+    const uint16_t actual_digit = (((uint16_t) retainer) * ((uint16_t) DECIMAL_BASE)) + ((uint16_t) d_digit); 
+    *(high_shifted_d + d_index) = actual_digit / d_lambda; 
+    retainer                    = actual_digit % d_lambda; 
+    if (d_index == 0) { break; }; 
+    d_index--; 
+  }; 
+}; 
+
+
+
+
+static void decimal__inverse_aux_mult_high_digits_identical_r(decimal_env_t * decimal_env, uint8_t * d) { 
+  assert(false); 
+}; 
+
+static void decimal__inverse_aux_mult_high_digits_distinct_r(decimal_env_t * decimal_env, /*high-digit based,256-sized,N[255]=0*/uint8_t * d, /*high-digit based,256-sized,N[255]=0*/const uint8_t * e) { 
+  assert(d != e); 
+
+  // As this function is high-digit based, no infinity case nor overflow could happen (some low digits could be discarded though — but, unlike the low-digit version, it does not matter). 
+  // The result will be high-digit based as well. 
+  // For the sake of simplicity, both 'd' & 'e' are supposed to have their last_N to be 0. As such, result_last_N will be 0 as well. The actual exponent N could be 
+  // computed outside of this function. 
+  
+  // If this function is high-digit based, a multiplication is a low-digit operation (the remainder propagating upward). 
+  // Therefore, the intermediary result will be stored in a 512-sized array, low-digit based. 
+  
+  // *** 1 *** First, let's compute the index of the last significant digit and of the first significant digit. 
+  uint8_t d_first_index; 
+  uint8_t d_last_index; 
+  { 
+    uint8_t d_empty_huh; 
+    decimal__inverse_aux_square__get_last_and_first_indexes(d, &d_last_index, &d_first_index, &d_empty_huh); 
+    if (d_empty_huh) { 
+      memset(d, DECIMAL_EOF_BYTE, DECIMAL_SIZE); 
+      return; 
+    }; 
+  }; 
+  const int16_t d_len     = d_last_index - d_first_index + 1; 
+  const int16_t d_last_N  = ((int16_t) d_last_index)  - ((int16_t) DECIMAL_SIZE_MINUS1); 
+  const int16_t d_first_N = ((int16_t) d_first_index) - ((int16_t) DECIMAL_SIZE_MINUS1); 
+  DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "d_first_index: "); dputn(STDERR_FILENO, d_first_index); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "d_last_index : "); dputn(STDERR_FILENO, d_last_index ); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "d_len        : "); dputn(STDERR_FILENO, d_len        ); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "d_last_N     : "); dputn(STDERR_FILENO, d_last_N     ); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "d_first_N    : "); dputn(STDERR_FILENO, d_first_N    ); write_eol(STDERR_FILENO);); 
+
+  
+  uint8_t e_first_index; 
+  uint8_t e_last_index; 
+  { 
+    uint8_t e_empty_huh; 
+    decimal__inverse_aux_square__get_last_and_first_indexes(e, &e_last_index, &e_first_index, &e_empty_huh); 
+    if (e_empty_huh) { 
+      memset(d, DECIMAL_EOF_BYTE, DECIMAL_SIZE); 
+      return; 
+    }; 
+  }; 
+  const int16_t e_len     = e_last_index - e_first_index + 1; 
+  const int16_t e_last_N  = ((int16_t) e_last_index)  - ((int16_t) DECIMAL_SIZE_MINUS1); 
+  const int16_t e_first_N = ((int16_t) e_first_index) - ((int16_t) DECIMAL_SIZE_MINUS1); 
+  DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "e_first_index: "); dputn(STDERR_FILENO, e_first_index); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "e_last_index : "); dputn(STDERR_FILENO, e_last_index ); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "e_len        : "); dputn(STDERR_FILENO, e_len        ); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "e_last_N     : "); dputn(STDERR_FILENO, e_last_N     ); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "e_first_N    : "); dputn(STDERR_FILENO, e_first_N    ); write_eol(STDERR_FILENO);); 
+  
+  
+  // *** 2 *** Second, let's rebase both numbers. 
+  // NB: Unlike division, it's based on the lowest digit (as this operation starts from the lowest digit). 
+  uint8_t low_shifted_d[DECIMAL_SIZE]; // TODO FIXME XXX: Allocating a new array should not be necessary. 
+  bcopy(d + d_first_index, low_shifted_d, d_len); 
+  memset(low_shifted_d + d_len, DECIMAL_EOF_BYTE, DECIMAL_SIZE - d_len); 
+  DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[02nd ­ Post rebasing]", " ", "low_shifted_d = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, low_shifted_d, DECIMAL_SIZE);); 
+  uint8_t * low_shifted_d_ptr = &(low_shifted_d[0]); 
+  
+  uint8_t low_shifted_e[DECIMAL_SIZE]; 
+  bcopy(e + e_first_index, low_shifted_e, e_len); 
+  memset(low_shifted_e + e_len, DECIMAL_EOF_BYTE, DECIMAL_SIZE - e_len); 
+  DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[02nd ­ Post rebasing]", " ", "low_shifted_e = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, low_shifted_e, DECIMAL_SIZE);); 
+  uint8_t * low_shifted_e_ptr = &(low_shifted_e[0]); 
+  
+  
+  // *** 3 *** 
+  // Multiplier   -> shorter one 
+  // Multiplicand -> longer  one 
+  uint8_t * multiplier   = (d_len < e_len) ? low_shifted_d_ptr : low_shifted_e_ptr; 
+  uint8_t * multiplicand = (d_len < e_len) ? low_shifted_e_ptr : low_shifted_d_ptr; 
+  uint8_t * m1           = multiplier; 
+  uint8_t * m2           = multiplicand; 
+#if 0 
+  uint8_t m2_copy[DECIMAL_SIZE]; 
+  bcopy(m2, m2_copy, DECIMAL_SIZE); 
+#endif 
+  const int16_t m1_len         = (d_len < e_len) ? d_len         : e_len        ; 
+  const int16_t m1_first_index = (d_len < e_len) ? d_first_index : e_first_index; 
+  const int16_t m1_last_index  = (d_len < e_len) ? d_last_index  : e_last_index ; 
+  const int16_t m2_len         = (d_len < e_len) ? e_len         : d_len        ; 
+  const int16_t m2_first_index = (d_len < e_len) ? e_first_index : d_first_index; 
+  const int16_t m2_last_index  = (d_len < e_len) ? e_last_index  : d_last_index ; 
+  DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[03rd ­ m1&m2]", " ", "m1 = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, m1, DECIMAL_SIZE);); 
+  DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[03rd ­ m1&m2]", " ", "m2 = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, m2, DECIMAL_SIZE);); 
+#if 0 
+  assert(0 == bcmp(m2, m2_copy, DECIMAL_SIZE)); 
+#endif 
+  
+  
+  // *** 4 *** 
+  // How many different digits the multiplier has? 
+  uint8_t multiplier_digit_frequency[DECIMAL_BASE]; 
+  bzero(multiplier_digit_frequency, sizeof(multiplier_digit_frequency)); 
+  for (int m1_index = 0; m1_index < m1_len; m1_index++) { 
+    const uint8_t m1_digit = *(m1 + m1_index); 
+    assert(m1_digit < DECIMAL_BASE); 
+    multiplier_digit_frequency[m1_digit] ++; 
+  }; 
+#if 0 
+  assert(0 == bcmp(m2, m2_copy, DECIMAL_SIZE)); 
+#endif 
+
+  int16_t m1_distinct_digit_count; 
+  m1_distinct_digit_count = 0; 
+  for (int m1_digit = 0; m1_digit < DECIMAL_BASE; m1_digit++) { 
+    if (0 == multiplier_digit_frequency[m1_digit]) continue; 
+    m1_distinct_digit_count++; 
+  }; 
+  DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[04th ­ Digit counting]", " ", "m1_distinct_digit_count: "); dputn(STDERR_FILENO, m1_distinct_digit_count); write_eol(STDERR_FILENO);); 
+  
+  assert(0 != m1_distinct_digit_count); // That should not happen — emptyness should have been already caught earlier. 
+  
+  uint8_t m1_digits[m1_distinct_digit_count]; 
+  { 
+    uint8_t m1_digits_index = 0; 
+    for (int m1_digit = 0; m1_digit < DECIMAL_BASE; m1_digit++) { 
+      if (0 == multiplier_digit_frequency[m1_digit]) continue; 
+      m1_digits[m1_digits_index] = m1_digit; 
+      m1_digits_index++; 
+    }; 
+  }; 
+  //DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "m1_digits[0]: "); dputn(STDERR_FILENO, m1_digits[0]); write_eol(STDERR_FILENO);); 
+  
+  
+#if 0 
+  assert(0 == bcmp(m2, m2_copy, DECIMAL_SIZE)); 
+#endif 
+
+  // *** 5 *** 
+  // Fore-computation of the multiplications of the multiplicand by the digits of the multiplier. 
+  uint8_t * multiplicand_digit_multiple[DECIMAL_BASE]; // QUICK ACCESS 
+  bzero(multiplicand_digit_multiple, sizeof(multiplicand_digit_multiple)); 
+  //DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "sizeof(multiplicand_digit_multiple): "); dputn(STDERR_FILENO, sizeof(multiplicand_digit_multiple)); write_eol(STDERR_FILENO);); 
+  //decimal_t m2_digit_multiple[m1_distinct_digit_count]; // Allocation 
+  //uint8_t m2_digit_multiple[m1_distinct_digit_count][DECIMAL_SIZE+1]; // Allocation // 'DECIMAL_SIZE+1' to prevent overflow when 'm2' len is already 255, the multiplying digit is something like 99 
+  //uint8_t m2_digit_multiple[m1_distinct_digit_count][DECIMAL_SIZE]; // Allocation // 'DECIMAL_SIZE' as a digit got discarded if len was 255. 
+  enum { ONE_DIGIT_MULTIPLE_SIZE = DECIMAL_SIZE + 1 }; 
+  uint8_t m2_digit_multiple[m1_distinct_digit_count][ONE_DIGIT_MULTIPLE_SIZE]; // ALLOCATION 
+  { 
+    for (uint8_t m1_digits_index = 0; m1_digits_index < m1_distinct_digit_count; m1_digits_index++) { 
+      const uint8_t m1_digit = m1_digits[m1_digits_index]; 
+      //decimal_t * m = &(m2_digit_multiple[m1_digits_index]); 
+      //uint8_t * m = m2_digit_multiple[m1_digits_index]; 
+      uint8_t * m = &(m2_digit_multiple[m1_digits_index][0]); 
+      //multiplicand_digit_multiple[m1_digit] = (uint8_t *)m; 
+      multiplicand_digit_multiple[m1_digit] = m; 
+      //DEBUG_STATEMENT(1000,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "multiplicand_digit_multiple[m1_digit]: "); dputn(STDERR_FILENO, (long long int) multiplicand_digit_multiple[m1_digit]); write_eol(STDERR_FILENO);); 
+    }; 
+  }; 
+  
+  
+  // Computation 
+  { 
+    DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[05th ­ Digit-μ-computation]", " ", "************************ COMPUTATION ************************"); write_eol(STDERR_FILENO);); 
+    DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[05th ­ Digit-μ-computation]", " ", "m2 = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, m2, DECIMAL_SIZE);); 
+#if 0 
+  assert(0 == bcmp(m2, m2_copy, DECIMAL_SIZE)); 
+#endif 
+    uint8_t infinity_huh; 
+    for (int16_t m1_digits_index = 0; m1_digits_index < m1_distinct_digit_count; m1_digits_index++) { 
+      const uint8_t m1_digit = m1_digits[m1_digits_index]; 
+      uint8_t * result = multiplicand_digit_multiple[m1_digit]; 
+      //DEBUG_STATEMENT(1,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[05th - Digit-μ-computation]", " ", "m1_digits_index: "); dputn(STDERR_FILENO, m1_digits_index); dputs_array(STDERR_FILENO, " - ", "m1_digit: "); dputn(STDERR_FILENO, m1_digit); write_eol(STDERR_FILENO);); 
+      //DEBUG_STATEMENT(0,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "m2 = "); decimal__print_raw_ln_r(STDERR_FILENO, decimal_env, (decimal_t *)m2);); 
+      //DEBUG_STATEMENT(1,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[05th - Digit-μ-computation]", " ", "m2 = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, m2, DECIMAL_SIZE);); 
+      //DEBUG_STATEMENT(0,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "result = "); decimal__print_raw_ln_r(STDERR_FILENO, decimal_env, (decimal_t *)result);); 
+      //DEBUG_STATEMENT(1,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[05th - Digit-μ-computation]", " ", "result = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, result, DECIMAL_SIZE);); 
+      decimal__inverse_aux_mult_digit_r(m2, m1_digit, result, /*const uint16_t result_size*/ONE_DIGIT_MULTIPLE_SIZE, &infinity_huh); 
+      //DEBUG_STATEMENT(1000,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "result = "); decimal__print_raw_ln_r(STDERR_FILENO, decimal_env, (decimal_t *)result);); 
+      //DEBUG_STATEMENT(1,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[05th - Digit-μ-computation]", " ", "result = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, result, DECIMAL_SIZE);); 
+
+      //DEBUG_STATEMENT(1000,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "infinity_huh: "); dputn(STDERR_FILENO, infinity_huh); write_eol(STDERR_FILENO);); 
+      assert(!infinity_huh); 
+    }; 
+    //assert(false); 
+  }; 
+  
+  
+#if 1 
+  { 
+    for (int16_t m1_digits_index = 0; m1_digits_index < m1_distinct_digit_count; m1_digits_index++) { 
+      const uint8_t m1_digit = m1_digits[m1_digits_index]; 
+      const uint8_t * result = multiplicand_digit_multiple[m1_digit]; 
+      DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "multiplicand_digit_multiple[", int_string__stack(m1_digit), "] = [", int_string__stack(ONE_DIGIT_MULTIPLE_SIZE), "]"); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, multiplicand_digit_multiple[m1_digit], ONE_DIGIT_MULTIPLE_SIZE);); 
+    }; 
+  }; 
+#endif 
+  
+  
+  
+  // *** 6 *** 
+  // Shifting and adding them up altogether. 
+  uint8_t result[DECIMAL_SIZE_DOUBLE]; 
+  memset(result, DECIMAL_EOF_BYTE, sizeof(result)); 
+  { 
+    uint8_t infinity_huh; 
+    for (int16_t m1_index = 0; m1_index < m1_len; m1_index++) { 
+      const uint8_t   m1_digit             = *(m1 + m1_index); 
+      const uint8_t * m2_by_m1_digit       = multiplicand_digit_multiple[m1_digit]; 
+      const int16_t   m1_digit_shift       = m1_index; 
+      //DEBUG_STATEMENT(1,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[shift&add]", " ", "m1_index: "); dputn(STDERR_FILENO, m1_index); dputs_array(STDERR_FILENO, " - ", "m1_digit: "); dputn(STDERR_FILENO, m1_digit); write_eol(STDERR_FILENO);); 
+      if (0 == m1_digit) continue; 
+      //decimal__decimal__inverse_aux_square_aux_shift_and_add_r(/*512-sized*/result, /*0-based*/m2_by_m1_digit, m1_digit_shift, &infinity_huh); 
+      //decimal__inverse_aux_square_aux_shift_and_add__v_low_r(decimal_env, /*512-sized,0-based*/result, /*256-sized,0-based*/m2_by_m1_digit, /*low-digit based*/m1_digit_shift, &infinity_huh);      
+      decimal__inverse_aux_square_aux_shift_and_add__v_low_r(decimal_env, /*512-sized,0-based*/result, /*X-sized,0-based*/m2_by_m1_digit, /*m1_size*/ONE_DIGIT_MULTIPLE_SIZE, /*low-digit based*/m1_digit_shift, &infinity_huh); 
+      //assert(m1_index != 1); 
+      assert(!infinity_huh); 
+    }; 
+  }; 
+  
+  DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[06th ­ Post shift&add]", " ", "result = [", int_string__stack(sizeof(result)), "]"); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, result, sizeof(result));); 
+
+  
+  // *** 7 *** 
+  // Normalization 
+  { 
+    int16_t result_first_index; 
+    int16_t result_last_index; 
+    //decimal_mantisse__get_last_and_first_indexes(result, &result_last_index, &result_first_index, &malformed_number_huh); 
+    //decimal__inverse_aux_square__get_last_and_first_indexes(low_square_digits, &result_last_index, &result_first_index, &result_empty_huh); 
+    
+    { 
+      result_last_index = DECIMAL_SIZE_DOUBLE; 
+      for (;;) { 
+	result_last_index--; 
+	if (result_last_index < 0) break; 
+	const uint8_t d_value = result[result_last_index]; 
+	if (d_value == DECIMAL_EOF_BYTE) continue; 
+	if (d_value == 0) continue; 
+	break; 
+      }; 
+    }; 
+    DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "result_last_index : "); dputn(STDERR_FILENO, result_last_index); write_eol(STDERR_FILENO);); 
+
+    { 
+      const uint8_t result_empty_huh = (result_last_index < 0); 
+      if (result_empty_huh) { 
+	bzero(d, DECIMAL_SIZE); 
+	return; 
+      }; 
+    }; 
+
+#if 1 
+    // As the computation was low-digit based, the first digit must be at index 0. 
+    result_first_index = 0; 
+    assert(*(result + result_first_index) != DECIMAL_EOF_BYTE); 
+#else 
+    { 
+      result_first_index = -1; 
+      for (;;) { 
+	result_first_index++; 
+	if (result_first_index >= DECIMAL_SIZE_DOUBLE) break;
+	const uint8_t d_value = result[result_first_index]; 
+	if (d_value == DECIMAL_EOF_BYTE) continue; 
+	if (d_value == 0) continue; 
+	break; 
+      }; 
+    }; 
+#endif 
+    DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "result_first_index: "); dputn(STDERR_FILENO, result_first_index); write_eol(STDERR_FILENO);); 
+
+    { 
+      const uint8_t result_empty_huh = (result_first_index >= DECIMAL_SIZE_DOUBLE); 
+      if (result_empty_huh) { 
+	bzero(d, DECIMAL_SIZE); 
+	return; 
+      }; 
+    }; 
+    
+    const int16_t result_len     = result_last_index - result_first_index + 1; 
+    const int16_t result_first_N = d_first_N + e_first_N; 
+    const int16_t result_last_N  = result_first_N + result_len - 1; 
+    DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "result_len    : "); dputn(STDERR_FILENO, result_len    ); write_eol(STDERR_FILENO);); 
+    DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "result_first_N: "); dputn(STDERR_FILENO, result_first_N); write_eol(STDERR_FILENO);); 
+    DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "result_last_N : "); dputn(STDERR_FILENO, result_last_N ); write_eol(STDERR_FILENO);); 
+    
+    { 
+      assert(result_last_N <= 0); 
+      const uint8_t returned_last_index = DECIMAL_SIZE_MINUS1 + result_last_N; 
+      bzero(d + returned_last_index + 1, -result_last_N); 
+      int16_t returned_index; 
+      int16_t   result_index; 
+      returned_index = returned_last_index; 
+      result_index   =   result_last_index; 
+      for (;;) { 
+	if (returned_index < 0) break; 
+	if (  result_index < 0) break; 
+	*(d + returned_index) = *(result + result_index); 
+	returned_index--; 
+	result_index--; 
+      }; 
+      if (returned_index > 0) memset(d, DECIMAL_EOF_BYTE, returned_index); 
+    }; 
+    
+    
+    DEBUG_STATEMENT(1000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "returned_high_d = [" STRINGIFY(DECIMAL_SIZE) "]"); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, d, DECIMAL_SIZE);); 
+  }; 
+  
+  
+}; 
+
+static void decimal__inverse_aux_mult_high_digits_r(decimal_env_t * decimal_env, uint8_t * d, const uint8_t * e) { 
+  if (d == e) { 
+    decimal__inverse_aux_mult_high_digits_identical_r(decimal_env, d); 
+    return;
+  }; 
+  decimal__inverse_aux_mult_high_digits_distinct_r(decimal_env, d, e); 
+}; 
+
+
+
+
+
+
+RETURN_TYPE_T decimal__inverse_r(decimal_env_t * decimal_env, decimal_t * d_r) { 
+  
+  uint8_t       * d = *d_r; 
+  const uint8_t d_status = *d; 
+  goto label__start; 
+  
+ label__exit: { 
+#ifdef RETURN_ERROR 
+    return DECIMAL__OK; 
+#else 
+    return d_r; 
+#endif 
+  }; 
+
+  error_label__status: { 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+  }; 
+
+
+ label__error__malformed_number: { 
+    decimal_env -> error_id = DECIMAL__MALFORMED_NUMBER; 
+    //snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Malformed number: index = %d — char = %u", (int)index, ((unsigned int)(*d_r)[index])); 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Malformed number"); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+
+  }; 
+
+ label__error__d_lambda_was_zero: { 
+    decimal_env -> error_id = DECIMAL__D_LAMBDA_WAS_ZERO; 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "d_lambda was zero"); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+
+  }; 
+
+ error_label__missing_status_case_for_d: { 
+    const char * status_cstr = decimal_status__cstr(d_status); 
+    decimal_env -> error_id = DECIMAL__STATUS_NOT_LISTED_IN_SWITCH; 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Status of 'd' not listed in switch: %d [%s]", ((int)d_status), status_cstr); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+  }; 
+
+
+label__start: {}; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__INVALID    ) goto label__exit; 
+  if (d_status == DECIMAL_STATUS__INFINI     ) { *d = DECIMAL_STATUS__ZERO  ; goto label__exit; }; 
+  if (d_status == DECIMAL_STATUS__ZERO       ) { *d = DECIMAL_STATUS__INFINI; goto label__exit; }; 
+  if (d_status == DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE) goto label__exit; 
+  // --- 
+  if (d_status == DECIMAL_STATUS__POS_INFINI ) { *d = DECIMAL_STATUS__POS_EPSILON; goto label__exit; }; 
+  if (d_status == DECIMAL_STATUS__NEG_INFINI ) { *d = DECIMAL_STATUS__NEG_EPSILON; goto label__exit; }; 
+  if (d_status == DECIMAL_STATUS__POS_EPSILON) { *d = DECIMAL_STATUS__POS_INFINI ; goto label__exit; }; 
+  if (d_status == DECIMAL_STATUS__NEG_EPSILON) { *d = DECIMAL_STATUS__NEG_INFINI ; goto label__exit; }; 
+  // --- 
+  if (!(d_status == DECIMAL_STATUS__POS || d_status == DECIMAL_STATUS__NEG)) { goto error_label__missing_status_case_for_d; }; 
+
+  // Inverse is a floating-point operation. 
+  // So we will switch 'd' from fixed-point to floating-point. 
+  
+  uint8_t malformed_number_huh; 
+  
+  // *** 1 *** First, let's compute the index of the last significant digit and of the first significant digit. 
+  uint8_t d_first_index; 
+  uint8_t d_last_index; 
+  decimal_mantisse__get_last_and_first_indexes(d_r, &d_last_index, &d_first_index, &malformed_number_huh); 
+  if (malformed_number_huh) goto label__error__malformed_number; 
+  const uint8_t d_len    = d_last_index - d_first_index + 1; 
+  const int16_t d_last_N = ((int16_t) d_last_index) - DECIMAL_FIXED_POINT_INDEX; 
+  const uint8_t d_lambda = *(d + d_last_index); 
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[01st ­ Data]", " ", "d_first_index: "); dputn(STDERR_FILENO, d_first_index); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[01st ­ Data]", " ", "d_last_index : "); dputn(STDERR_FILENO, d_last_index ); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[01st ­ Data]", " ", "d_len        : "); dputn(STDERR_FILENO, d_len        ); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[01st ­ Data]", " ", "d_last_N     : "); dputn(STDERR_FILENO, d_last_N     ); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[01st ­ Data]", " ", "d_lambda     : "); dputn(STDERR_FILENO, d_lambda     ); write_eol(STDERR_FILENO);); 
+  
+  // *** 2 *** Second, let's rebase 'd'. 
+  // It will high-digit based. 
+  uint8_t high_shifted_d[DECIMAL_SIZE]; 
+  { 
+    //uint8_t new_last_index  = DECIMAL_DIGITS_INDEX_LAST; 
+    //uint8_t shifting_len    = DECIMAL_DIGITS_INDEX_LAST - d_last_index; 
+    //uint8_t new_first_index = DECIMAL_DIGITS_INDEX_LAST - d_len + 1; 
+    const uint8_t new_last_index  = DECIMAL_SIZE_MINUS1; 
+    const uint8_t new_first_index = new_last_index - d_len + 1; 
+    bcopy(d + d_first_index, high_shifted_d + new_first_index, d_len); 
+    memset(high_shifted_d, DECIMAL_EOF_BYTE, DECIMAL_SIZE - d_len); 
+  }; 
+  uint8_t * high_shifted_d_ptr = &(high_shifted_d[0]); 
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[02nd ­ Post rebasement]", " ", "high_shifted_d_ptr = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, high_shifted_d_ptr, DECIMAL_SIZE);); 
+  
+  // *** 3 *** Third, let's scale-divide 'd' by its highest digit 'd_lambda'. 
+  { 
+    uint8_t d_lambda_was_zero_huh; 
+    decimal__inverse_aux_digit_division_high_r(high_shifted_d_ptr, d_lambda, &d_lambda_was_zero_huh);  
+    if (d_lambda_was_zero_huh) goto label__error__d_lambda_was_zero; // Should not happen, so something got wrong. 
+  }; 
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[03rd ­ Post lambda-division]", " ", "high_shifted_d_ptr = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, high_shifted_d_ptr, DECIMAL_SIZE);); 
+  
+  // *** 4 *** Fourth, let's adjust 'd' if greater than 1/3 
+  uint8_t got_divided_by_two_huh; 
+  if (d_len < 2) { 
+    got_divided_by_two_huh = false; 
+  } 
+  else { 
+    got_divided_by_two_huh = (*(high_shifted_d_ptr + DECIMAL_SIZE - 2) >= ONE_THIRD_OF_DECIMAL_BASE); 
+  };   
+  if (got_divided_by_two_huh) { 
+    decimal__inverse_aux_digit_division_high_r(high_shifted_d_ptr, 2, NULL); 
+  }; 
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[04th ­ Post adjustment]", " ", "got_divided_by_two_huh: ", got_divided_by_two_huh ? "TRUE" : "FALSE"); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[04th ­ Post adjustment]", " ", "high_shifted_d_ptr = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, high_shifted_d_ptr, DECIMAL_SIZE);); 
+  
+  // *** 5 *** Fifth, removing the leading '1'. 
+  if (got_divided_by_two_huh) { 
+    assert(0 == *(high_shifted_d_ptr + DECIMAL_SIZE_MINUS1)); 
+    decimal__inverse_aux_complement_to_one_r(decimal_env, high_shifted_d); 
+    // Now, implicitly, 'high_shifted_d' is negative. 
+  } 
+  else { 
+    assert(1 == *(high_shifted_d_ptr + DECIMAL_SIZE_MINUS1)); 
+    *(high_shifted_d_ptr + DECIMAL_SIZE_MINUS1) = 0; 
+  }; 
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[05th ­ Leading '1' removed]", " ", "high_shifted_d_ptr = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, high_shifted_d_ptr, DECIMAL_SIZE);); 
+  
+  // *** 6 *** Sixth, let's compute the squares of the floating part of 'd'. 
+  enum { number_of_squares_to_compute = (LOG2_OF_DECIMAL_BASE << 3) + 1 }; 
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[06th ­ Squares computing]", " ", "number_of_squares_to_compute = "); dputn(STDERR_FILENO, number_of_squares_to_compute); dput_eol(STDERR_FILENO); ); 
+  uint8_t high_squares[number_of_squares_to_compute][DECIMAL_SIZE]; 
+  // Two ways to compute squares: 
+  //  - the standard digit-multiplication & shift & add method; 
+  //  - stating that such a number is a vector on the basis <1,B^-1,B^-2,…>, and such a square operation requires n(n+1)/2 multiplications, and (n-1)² additions [and then a normalization]. 
+  //    But, in that second method, numbers can be as long as three digits… Not sure that this is a gain. 
+  // TODO XXX FIXME 
+  //decimal__mult_aux_identical_r(decimal_env_t * decimal_env, decimal_t * d_r); 
+  //decimal__mult_aux_identical_r(decimal_env, d_r) { 
+  //decimal__inverse_aux_square_r(const uint8_t * shifted_d, uint8_t * squared); 
+  //bzero(high_squares[0], DECIMAL_SIZE); 
+  uint8_t squares_nb; 
+  { 
+    memset(high_squares[0], DECIMAL_EOF_BYTE, DECIMAL_SIZE); 
+    bcopy(high_shifted_d, high_squares[1], DECIMAL_SIZE); 
+    DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[06th ­ Squares computing]", " ", "high_squares[", int_string__stack(0), "] = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, high_squares[0], DECIMAL_SIZE);); 
+    DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[06th ­ Squares computing]", " ", "high_squares[", int_string__stack(1), "] = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, high_squares[1], DECIMAL_SIZE);); 
+    
+    uint8_t empty_huh; 
+    squares_nb = number_of_squares_to_compute; 
+    for (int i = 2; i < number_of_squares_to_compute; i++) { 
+      decimal__inverse_aux_square_r(decimal_env, /*const uint8_t * shifted_d*/high_squares[i-1], /*uint8_t * squared*/high_squares[i], &empty_huh); 
+      DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[06th ­ Squares computing]", " ", "high_squares[", int_string__stack(i), "] = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, high_squares[i], DECIMAL_SIZE);); 
+      if (empty_huh) { 
+	squares_nb = i - 1; 
+	break; 
+      }; 
+      //assert(i != 2); 
+    }; 
+#if 0 
+    for (int i = squares_nb + 1; i < number_of_squares_to_compute; i++) { 
+      bzero(high_squares[i], sizeof(high_squares[i])); 
+    }; 
+#endif 
+
+  }; 
+
+#if 0 
+  {
+    DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[06th ­ Squares computing]", " ", "squares_nb: "); dputn(STDERR_FILENO, squares_nb); write_eol(STDERR_FILENO);); 
+    for (int i = 0; i < squares_nb; i++) { 
+      DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[06th ­ Squares computing]", " ", "high_squares[", int_string__stack(i), "] = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, high_squares[i], DECIMAL_SIZE);); 
+    }; 
+    if (squares_nb < number_of_squares_to_compute) { 
+      DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[06th ­ Squares computing]", " ", "high_squares[", int_string__stack(squares_nb), "] = "); decimal_mantisse__print_raw_r(STDERR_FILENO, decimal_env, high_squares[squares_nb], DECIMAL_SIZE); write_string_ln(STDERR_FILENO, "// Should be null." ); ); 
+    }; 
+  }; 
+#endif 
+
+
+  
+  
+  
+  // *** 7 *** Seventh, let's compute the multiplications 
+  // d. Using the serie of squares: 
+  //      1 / [1 + x] = [1-x]/[1-x²] = (1-x)(1+x²)/[1-x^4] = (1-x)(1+x²)(1+x^4)/[1-x^8] = (1-x)(1+x²)(1+x^4)(1+x^8)/[1-x^16] 
+  //                  = (1-x)(1+x²)(1+x^4)(1+x^8)(1+x^16)(1+x^32)(1+x^64)(1+x^128) / [1-x^256] 
+  //                  = (1-x)(1+x²)(1+x^4)(1+x^8)(1+x^16)(1+x^32)(1+x^64)(1+x^128) + O(B^-256)  { if |x| < 1 } 
+  
+  // d. That method doubles the number of computed digits for every step. 
+  //    That method needs to compute: 
+  //     - 1 digit division                [     256 unit operations ] 
+  //     - 8 decimal squares               [ 8 x 512 unit operations ] 
+  //     - 7 decimal multiplications       [ 7 x 512 unit operations ] 
+  //     - 1 digit division                [     256 unit operations ] 
+  //     - one last decimal multiplication [ 1 x 512 unit operations ] 
+  //    Which amounts to roughly 16.5 decimal operations [ around 8.5k unit operations ], 
+  //    thus a total of roughly 8.5k CPU cycle for one operation. 
+  //    So it looks blazingly fast (might be something wrong somewhere). 
+  //    Regarding fore-computation, nothing seems to be fore-computable. 
+  
+  // Adding '1' to each square. 
+  //for (int i = 0; i < number_of_squares_to_compute; i++) { 
+  for (int i = 0; i < squares_nb; i++) { 
+    high_squares[i][DECIMAL_SIZE_MINUS1] = 1; 
+#if 0 
+    int j = DECIMAL_SIZE_MINUS1; 
+    for (;;) { 
+      j--; 
+      if (j < 0) break; 
+      if (DECIMAL_EOF_BYTE != high_squares[i][j]) break;
+      high_squares[i][j] = 0; 
+    }; 
+#endif 
+  }; 
+  
+  // Cumulated multiplication. 
+  uint8_t result[DECIMAL_SIZE]; 
+  if (got_divided_by_two_huh) { 
+    // If 'got_divided_by_two_huh' is true, then the fractional part of 'd' is negative. Therefore: 
+    //      1 / [1 - x] = [1+x]/[1-x²] = (1+x)(1+x²)/[1-x^4] = (1+x)(1+x²)(1+x^4)/[1-x^8] = (1+x)(1+x²)(1+x^4)(1+x^8)/[1-x^16] 
+    //                  = (1+x)(1+x²)(1+x^4)(1+x^8)(1+x^16)(1+x^32)(1+x^64)(1+x^128) / [1-x^256] 
+    //                  = (1+x)(1+x²)(1+x^4)(1+x^8)(1+x^16)(1+x^32)(1+x^64)(1+x^128) + O(B^-256)  { if |x| < 1 } 
+    // Therefore, just the initialization changes. 
+    bcopy(high_squares[1], result, DECIMAL_SIZE); 
+  } 
+  else { 
+    //      1 / [1 + x] = [1-x]/[1-x²] = (1-x)(1+x²)/[1-x^4] = (1-x)(1+x²)(1+x^4)/[1-x^8] = (1-x)(1+x²)(1+x^4)(1+x^8)/[1-x^16] 
+    //                  = (1-x)(1+x²)(1+x^4)(1+x^8)(1+x^16)(1+x^32)(1+x^64)(1+x^128) / [1-x^256] 
+    //                  = (1-x)(1+x²)(1+x^4)(1+x^8)(1+x^16)(1+x^32)(1+x^64)(1+x^128) + O(B^-256)  { if |x| < 1 } 
+    //DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[07th ­ Digit-multiplication]", " ", "high_shifted_d_ptr = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, high_shifted_d_ptr, DECIMAL_SIZE);); 
+    bcopy(high_shifted_d_ptr, result, DECIMAL_SIZE); 
+    decimal__inverse_aux_complement_to_one_r(decimal_env, result); 
+  }; 
+  //for (int i = 2; i < number_of_squares_to_compute; i++) { 
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[07th ­ Digit-multiplication]", " ", "result@1 = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, result, DECIMAL_SIZE);); 
+  for (int i = 2; i < squares_nb; i++) { 
+    DEBUG_STATEMENT(1,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[07th ­ Digit-multiplication]", " ", "high_squares[", int_string__stack(i), "] = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, high_squares[i], DECIMAL_SIZE);); 
+    decimal__inverse_aux_mult_high_digits_r(decimal_env, result, high_squares[i]); 
+    DEBUG_STATEMENT(1,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[07th ­ Digit-multiplication]", " ", "result@", int_string__stack(i), " = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, result, DECIMAL_SIZE);); 
+    //assert(i != 7); 
+  }; 
+  
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[07th ­ Post multiplication]", " ", "result = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, result, DECIMAL_SIZE);); 
+  
+  // *** 8 *** Eighth, we have to digit-divide the result by lambda. 
+  if (got_divided_by_two_huh) { 
+    uint8_t d_lambda_was_zero_huh; 
+    decimal__inverse_aux_digit_division_high_r(result, d_lambda << 1, &d_lambda_was_zero_huh);  
+    if (d_lambda_was_zero_huh) goto label__error__d_lambda_was_zero; // Should not happen, so something got wrong. 
+  }
+  else { 
+    uint8_t d_lambda_was_zero_huh; 
+    decimal__inverse_aux_digit_division_high_r(result, d_lambda, &d_lambda_was_zero_huh);  
+    if (d_lambda_was_zero_huh) goto label__error__d_lambda_was_zero; // Should not happen, so something got wrong. 
+  }; 
+  
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[08th ­ Post lambda digit-division]", " ", "result = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, result, DECIMAL_SIZE);); 
+  
+  
+  
+  // *** 9 *** Nineth, we have to store the result into 'd', 
+  // including the conversion to a fixed-point number. 
+  //const int16_t d_N      = d_last_index - DECIMAL_FIXED_POINT_INDEX; 
+  
+  do { 
+    int16_t d_index; 
+    d_index = DECIMAL_FIXED_POINT_INDEX - d_last_N; 
+    int16_t result_index; 
+    //result_index = DECIMAL_SIZE_DOUBLE_MINUS1; 
+    result_index = DECIMAL_SIZE_MINUS1; 
+    for (;;) { 
+      if (result_index < 0) break; 
+      if (0 != *(result + result_index)) break; 
+      d_index--; 
+      result_index--; 
+    }; 
+    if (result_index < 0) { 
+      *(d + DECIMAL_STATUS_INDEX) = d_status == DECIMAL_STATUS__POS ? DECIMAL_STATUS__POS_EPSILON : DECIMAL_STATUS__NEG_EPSILON; 
+      break; 
+    }; 
+    if (d_index > DECIMAL_DIGITS_INDEX_LAST) { 
+      *(d + DECIMAL_STATUS_INDEX) = d_status == DECIMAL_STATUS__POS ? DECIMAL_STATUS__POS_INFINI : DECIMAL_STATUS__NEG_INFINI; 
+      break; 
+    }; 
+    if (d_index < DECIMAL_DIGITS_INDEX_FIRST) { 
+      *(d + DECIMAL_STATUS_INDEX) = d_status == DECIMAL_STATUS__POS ? DECIMAL_STATUS__POS_EPSILON : DECIMAL_STATUS__NEG_EPSILON; 
+      break; 
+    }; 
+    memset(d + DECIMAL_DIGITS_INDEX_FIRST, DECIMAL_EOF_BYTE, DECIMAL_DIGITS_SIZE); 
+    for (;;) { 
+      if (d_index < DECIMAL_DIGITS_INDEX_FIRST) break; 
+      if (result_index < 0) break; 
+      *(d + d_index) = *(result + result_index); 
+      d_index--; 
+      result_index--; 
+    }; 
+    break; 
+  } while (false); 
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[09th ­ Post copy into 'd']", " ", "d = "); decimal__print_raw_ln_r(STDERR_FILENO, decimal_env, d_r);); 
+  
+  // *** 10 *** Tenth, normalization of 'd'. 
+  do { 
+    int16_t d_index; 
+    d_index = DECIMAL_DIGITS_INDEX_LAST_PLUS1; 
+    for (;;) { 
+      d_index--; 
+      if (d_index < 0) { goto label__error__malformed_number; }; // Should not happen as emptyness should have been already caught. 
+      const uint8_t d_value = *(d + d_index); 
+      if (d_value == DECIMAL_EOF_BYTE) continue; 
+      if (d_value == 0) { *(d + d_index) = DECIMAL_EOF_BYTE; continue; }; // Should not happen though, as this case should have been already dealt with. 
+      break; 
+    }; 
+    assert(d_index >= 0); 
+    if (d_index <= DECIMAL_FIXED_POINT_INDEX) { 
+      for (int i = d_index + 1; i <= DECIMAL_FIXED_POINT_INDEX; i++) { 
+	*(d + i) = 0; 
+      }; 
+      break; 
+    }; 
+    for (;;) { 
+      d_index--; 
+      if (d_index < 0) break; 
+      const uint8_t d_value = *(d + d_index); 
+      if (d_value == DECIMAL_EOF_BYTE) break; 
+    }; 
+    if (d_index < DECIMAL_FIXED_POINT_INDEX) break; 
+    for (int i = DECIMAL_FIXED_POINT_INDEX; i <= d_index; i++) { 
+      *(d + i) = 0; 
+    }; 
+  } while (false); 
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[10th ­ Post normalization of 'd']", " ", "d = "); decimal__print_raw_ln_r(STDERR_FILENO, decimal_env, d_r);); 
+  
+  // *** 11 *** Eleventh, done. 
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "d = "); decimal__print_raw_ln_r(STDERR_FILENO, decimal_env, d_r);); 
+  //DEBUG_STATEMENT(0,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "high_shifted_d = "); decimal__print_raw_ln_r(STDERR_FILENO, decimal_env, &high_shifted_d);); 
+  goto label__exit; 
+  
+  assert(false); 
+}; 
+
+
+ 
+

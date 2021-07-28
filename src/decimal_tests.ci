@@ -1,0 +1,345 @@
+
+
+
+static int_decimal_error_t quotient__compute__old001(const int sign, const uint16_t dividende, const uint16_t diviseur, uint8_t (*digits)[DECIMAL_SIZE]) { 
+  if (0 == diviseur) { 
+    if (0 == sign) { (*digits)[0] = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; return DECIMAL__OK; }; 
+    if (0  > sign) { (*digits)[0] = DECIMAL_STATUS__NEG_INFINI; return DECIMAL__OK; }; 
+    { (*digits)[0] = DECIMAL_STATUS__POS_INFINI; return DECIMAL__OK; }; 
+  }; 
+  if (0 ==      sign) { (*digits)[0] = DECIMAL_STATUS__ZERO; return DECIMAL__OK; }; 
+  if (0 == dividende) { (*digits)[0] = DECIMAL_STATUS__ZERO; return DECIMAL__OK; }; 
+  
+  //*digits = (sign > 0) ? DECIMAL_STATUS__POS : DECIMAL_STATUS__NEG; 
+  
+  const int quotient0 = dividende / diviseur; 
+  const int reste0    = dividende % diviseur; 
+  
+  uint8_t quotient0_base100[sizeof(uint16_t) << 1]; // log100(256) = 0.5 * log10(2^8) = 4 * log10(2) = 4 * 0.301029… = 1.204116… 
+  int quotient = quotient0; 
+  int quotient0_base100_n = 0; 
+  for (;;) { 
+    if (0 == quotient) break; 
+    quotient0_base100[quotient0_base100_n] = (quotient % 100); 
+    quotient /= 100; 
+    quotient0_base100_n++; 
+  }; 
+  int d_index = DECIMAL_SIZE - 1; 
+  if (0 == quotient0) { 
+    (*digits)[d_index] = 0; 
+    d_index--; 
+    (*digits)[0] = (sign > 0) ? 1 : -1; 
+  } 
+  else { 
+    (*digits)[0] = (sign > 0) ? quotient0_base100_n : (- quotient0_base100_n); 
+    for (;;) { 
+      quotient0_base100_n--; 
+      (*digits)[d_index] = quotient0_base100[quotient0_base100_n]; 
+      d_index--; 
+      if (0 == quotient0_base100_n) break; 
+    }; 
+  }; 
+  int reste = reste0; 
+  for (;;) { 
+    //fprintf(stderr, "[DEBUG] lookedup_index = %8d - dividende after sub = %8d " "\n", quotient, reste); 
+    reste    *= 100; 
+    quotient  = (reste / diviseur); 
+    reste     = (reste % diviseur); 
+    //fprintf(stderr, "[DEBUG] lookedup_index = %8d - dividende after sub = %8d " "\n", quotient, reste); 
+    (*digits)[d_index] = quotient; 
+    d_index--; 
+    if (0 == d_index) break; 
+  }; 
+  
+  return DECIMAL__OK; 
+}; 
+
+static int_decimal_error_t quotient__compute(const int8_t sign, const uint16_t dividende, const uint16_t diviseur, uint8_t (*digits)[DECIMAL_SIZE], int16_t * N_ref) { 
+  if (0 == diviseur) { 
+    if (0 ==      sign) { (*digits)[0] = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; return DECIMAL__OK; }; 
+    if (0 == dividende) { (*digits)[0] = DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE; return DECIMAL__OK; }; 
+    { (*digits)[0] = DECIMAL_STATUS__INFINI; return DECIMAL__OK; }; 
+  }; 
+  if (0 ==      sign) { (*digits)[0] = DECIMAL_STATUS__ZERO; return DECIMAL__OK; }; 
+  if (0 == dividende) { (*digits)[0] = DECIMAL_STATUS__ZERO; return DECIMAL__OK; }; 
+  
+  (*digits)[0] = (sign > 0) ? DECIMAL_STATUS__POS : DECIMAL_STATUS__NEG; 
+  
+  const int quotient0 = dividende / diviseur; 
+  const int reste0    = dividende % diviseur; 
+  
+  uint8_t quotient0_base100[sizeof(dividende) << 1]; // log100(256) = 0.5 * log10(2^8) = 4 * log10(2) = 4 * 0.301029… = 1.204116… 
+  int quotient = quotient0; 
+  int quotient0_base100_n = 0; 
+  for (;;) { 
+    //fprintf(stderr, "[DEBUG] quotient = %8d " "\n", quotient); 
+    if (0 == quotient) break; 
+    //fprintf(stderr, "[DEBUG] quotient0_base100_n = %8d - ARRAY_SIZE(quotient0_base100) = %8d " "\n", quotient0_base100_n, ARRAY_SIZE(quotient0_base100)); 
+    //assert(quotient0_base100_n < (int)ARRAY_SIZE(quotient0_base100)); 
+    quotient0_base100[quotient0_base100_n] = (quotient % 100); 
+    quotient /= 100; 
+    quotient0_base100_n++; 
+  }; 
+  int d_index = DECIMAL_SIZE - 1; 
+  *N_ref = quotient0_base100_n - 1; 
+  for (;;) { 
+    if (0 == quotient0_base100_n) break; 
+    quotient0_base100_n--; 
+    (*digits)[d_index] = quotient0_base100[quotient0_base100_n]; 
+    d_index--; 
+  }; 
+  int reste = reste0; 
+  uint8_t counting_leading_zeroes = (*N_ref) < 0; 
+  for (;;) { 
+    //fprintf(stderr, "[DEBUG] lookedup_index = %8d - dividende after sub = %8d " "\n", quotient, reste); 
+    reste    *= 100; 
+    quotient  = (reste / diviseur); 
+    reste     = (reste % diviseur); 
+    //fprintf(stderr, "[DEBUG] lookedup_index = %8d - dividende after sub = %8d " "\n", quotient, reste); 
+    if (counting_leading_zeroes) { 
+      if (0 != quotient) { 
+	counting_leading_zeroes = false; 
+	goto label__stop_counting_leading_zeroes; 
+      } 
+      else { 
+	(*N_ref) --; 
+      }; 
+    } 
+    else { 
+label__stop_counting_leading_zeroes: 
+      (*digits)[d_index] = quotient; 
+      d_index--; 
+    }; 
+    if (0 == d_index) break; 
+  }; 
+  
+  return DECIMAL__OK; 
+}; 
+
+static void quotient__print_r__old001(const int stduser_d, const decimal_t * d_r) { 
+  const uint8_t d_status = (*d_r)[0]; 
+  if (0 == d_status) { 
+    write_string(stduser_d, "0"); 
+    return; 
+  }; 
+  const uint8_t a_len = (d_status > 0) ? d_status : (-d_status); 
+  int d_index = DECIMAL_SIZE - 1; 
+  for (int i = 0; i < a_len; i++) { 
+    //dputn(stduser_d, (*d_r)[d_index]); 
+    dputs(stduser_d, base100_digit_to_cstr[(*d_r)[d_index]]); 
+    d_index--;
+  }; 
+  dputc(stduser_d, '.'); 
+  for (;;) { 
+    if (0 == d_index) break; 
+    //dputn(stduser_d, (*d_r)[d_index]); 
+    dputs(stduser_d, base100_digit_to_cstr[(*d_r)[d_index]]); 
+    d_index--;
+  }; 
+}; 
+
+static void quotient__print_r__old002(const int stduser_d, const decimal_t * d_r, const int16_t d_N) { 
+  const uint8_t d_status = (*d_r)[0]; 
+  if (0 == d_status) { 
+    write_string(stduser_d, "0"); 
+    return; 
+  }; 
+  if (d_status == DECIMAL_STATUS__NEG) { dputc(stduser_d, '-'); }; 
+  
+  if (d_N >= 0) { 
+    int d_index = DECIMAL_SIZE - 1; 
+    for (int i = 0; i <= d_N; i++) { 
+      dputs(stduser_d, base100_digit_to_cstr[(*d_r)[d_index]]); 
+      d_index--;
+    }; 
+    dputc(stduser_d, '.'); 
+    for (;;) { 
+      if (0 == d_index) break; 
+      dputs(stduser_d, base100_digit_to_cstr[(*d_r)[d_index]]); 
+      d_index--;
+    }; 
+    return; 
+  }; 
+  
+  if (d_N < 0) { 
+    dputs(stduser_d, base100_digit_to_cstr[0]); 
+    dputc(stduser_d, '.'); 
+    for (int i = d_N + 1; i < 0; i++) { 
+      dputs(stduser_d, base100_digit_to_cstr[0]); 
+    }; 
+    int d_index = DECIMAL_SIZE - 1; 
+    for (;;) { 
+      if (0 == d_index) break; 
+      dputs(stduser_d, base100_digit_to_cstr[(*d_r)[d_index]]); 
+      d_index--;
+    }; 
+    return; 
+  }; 
+  
+}; 
+
+static void quotient__print_r(const int stduser_d, const decimal_t * d_r, const int16_t d_N) { 
+  const uint8_t d_status = (*d_r)[0]; 
+  dputs_array(stduser_d, "{", decimal_status__cstr(d_status), "}:N[", int_string__stack(d_N), "]:X["); 
+  int d_index = DECIMAL_SIZE; 
+  for (;;) { 
+    d_index --; 
+    if (0 == d_index) break; 
+    const uint8_t d_v = (*d_r)[d_index]; 
+    if (d_v >= 100) { write_string(stduser_d, "<"); dputn(stduser_d, d_v); write_string(stduser_d, ">"); continue; }  
+    dputs(stduser_d, base100_digit_to_cstr[d_v]); 
+  }; 
+  dputs(stduser_d, "]" "\n"); 
+}; 
+
+static void quotient__print_ln_r(const int stduser_d, const decimal_t * d_r, const int16_t d_N) { 
+  quotient__print_r(stduser_d, d_r, d_N); 
+  write_eol(stduser_d); 
+}; 
+
+
+int_decimal_error_t test_decimal__unit(const int stduser_d, decimal_env_t * decimal_env, const uint16_t a, const uint16_t b) { 
+  uint8_t c[DECIMAL_SIZE]; 
+  int16_t c_N; 
+  quotient__compute(1, a, b, &c, &c_N); 
+  //quotient__print_ln_r(stduser_d, &c, c_N); 
+
+  decimal_t d; decimal__cast_from_int_r(decimal_env, &d, a); 
+  decimal_t e; decimal__cast_from_int_r(decimal_env, &e, b); 
+  decimal_t f; 
+  int16_t f_N; 
+  decimal__div_r__aux(decimal_env, &d, &e, &f, true, &f_N); 
+  //quotient__print_ln_r(stduser_d, &f, f_N); 
+  if ((0 == a) || (0 == b)) { bcopy(d, f, sizeof(f)); }; 
+  
+  const uint8_t c_status = c[0]; 
+  const uint8_t f_status = f[0]; 
+  
+  if (c_status != f_status) goto label__fail; 
+  
+  const uint8_t equal_huh__data = (c_N == f_N) && (0 == bcmp(c + 1, ((const uint8_t *) f) + 1, DECIMAL_SIZE - 1)); 
+  const uint8_t equal_huh = (c_status == DECIMAL_STATUS__POS || c_status == DECIMAL_STATUS__NEG) ? equal_huh__data : true; 
+  if (equal_huh) { 
+    //dputn(stduser_d, a); dputs(stduser_d, " / "); dputn(stduser_d, b); dputs(stduser_d, ": " "OK" "\n"); 
+    return DECIMAL__OK; 
+  }; 
+  
+
+label__fail: 
+  dputn(stduser_d, a); dputs(stduser_d, " / "); dputn(stduser_d, b); dputs(stduser_d, ": " "FAIL" ": "); 
+  
+  uint8_t index; 
+  index = 0; 
+  const uint8_t * f_ptr = &(f[0]); 
+  for (;;) { 
+    index --; 
+    if (0 == index) { break; }; // That means the status are different. //{ dputs(stduser_d, "INTERNAL ERROR (they are identical…?)" "\n"); return DECIMAL__ERROR_GENERIC; }; 
+    if (*(c + index) != *(f_ptr + index)) break; 
+  }; 
+  dputs_array(stduser_d, "N:[", int_string__stack(c_N), "|", int_string__stack(f_N), "]" " - " "M@", int_string__stack(index), ":[", int_string__stack(*(c + index)), "|", int_string__stack(*(f_ptr + index)), "]" "\n");  
+  
+  quotient__print_ln_r(stduser_d, &c, c_N); 
+  quotient__print_ln_r(stduser_d, &f, f_N); 
+
+  return DECIMAL__ERROR_GENERIC; 
+}; 
+
+
+
+int_decimal_error_t test_decimal_division__uint16_diag(const int stduser_d, decimal_env_t * decimal_env) { 
+#if 0 
+  test_decimal__unit(stduser_d, 0, 65535); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 35, 65500); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 55436, 10099); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 65529, 6); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 65530, 5); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 65531, 4); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 65532, 3); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 65533, 2); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 65534, 1); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 65535, 0); //return DECIMAL__OK; 
+  return DECIMAL__OK; 
+#endif 
+
+  uint16_t i; 
+  uint16_t j; 
+  uint16_t count_failed = 0; 
+  uint32_t count_all = 0; 
+  i = 0; 
+  for (;;) { 
+    j = UINT16_MAX - i; 
+    const int_decimal_error_t ok_huh = test_decimal__unit(stduser_d, decimal_env, i, j); 
+    //ok_huh_cumulated &= (ok_huh == DECIMAL__OK); 
+    if (ok_huh != DECIMAL__OK) count_failed++; 
+    //if (ok_huh != DECIMAL__OK) break; 
+    count_all ++; 
+    i++; 
+    if (0 == i) break; 
+  }; 
+  if (0 == count_failed) { 
+    dputs_array(stduser_d, "ALL TESTS SUCCEEDED" " (over ", int_string__stack(count_all), " tests)"  "\n"); 
+  } 
+  else { 
+    dputs_array(stduser_d, int_string__stack(count_failed), " TESTS FAILED" " (over ", int_string__stack(count_all), " tests)" "\n"); 
+  }; 
+  return count_failed > 0 ? DECIMAL__OK : DECIMAL__ERROR_GENERIC; 
+}; 
+
+
+
+
+
+
+int_decimal_error_t test_decimal_division__uint16_quad(const int stduser_d, decimal_env_t * decimal_env) { 
+#if 0 
+  test_decimal__unit(stduser_d, 1, 100); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 1, 10000); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 2, 200); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 2, 20000); //return DECIMAL__OK; 
+  return DECIMAL__OK; 
+#elif 0 
+  test_decimal__unit(stduser_d, 0, 65535); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 35, 65500); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 55436, 10099); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 65529, 6); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 65530, 5); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 65531, 4); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 65532, 3); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 65533, 2); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 65534, 1); //return DECIMAL__OK; 
+  test_decimal__unit(stduser_d, 65535, 0); //return DECIMAL__OK; 
+  return DECIMAL__OK; 
+#endif 
+
+  uint16_t i; 
+  uint16_t j; 
+  uint32_t count_failed = 0; 
+  uint32_t count_all    = 0; 
+  i = 1; 
+  for (;;) { 
+    //if (0 == (i & 0x0F)) 
+      { dputs_array(stduser_d, "i = " , int_string__stack(i), "\r"); }; 
+    j = 1; 
+    for (;;) { 
+      //if (0 == (j & 0xFF)) { dputs_array(stduser_d, "j = " , int_string__stack(j), "\r"); }; 
+      const int_decimal_error_t ok_huh = test_decimal__unit(stduser_d, decimal_env, i, j); 
+      //ok_huh_cumulated &= (ok_huh == DECIMAL__OK); 
+      //if (ok_huh != DECIMAL__OK) break; 
+      if (ok_huh != DECIMAL__OK) count_failed++; 
+      count_all ++; 
+      j++; 
+      if (0 == j) { break; }; 
+    }; 
+    //assert(false); 
+    i++; 
+    if (0 == i) { dput_eol(stduser_d); break; } 
+  }; 
+  
+  if (0 == count_failed) { 
+    dputs_array(stduser_d, "ALL TESTS SUCCEEDED" " (over ", int_string__stack(count_all), " tests)"  "\n"); 
+  } 
+  else { 
+    dputs_array(stduser_d, int_string__stack(count_failed), " TESTS FAILED" " (over ", int_string__stack(count_all), " tests)" "\n"); 
+  }; 
+  return count_failed > 0 ? DECIMAL__OK : DECIMAL__ERROR_GENERIC; 
+}; 

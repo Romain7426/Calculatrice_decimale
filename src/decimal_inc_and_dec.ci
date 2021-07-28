@@ -1,0 +1,170 @@
+
+RETURN_TYPE_T decimal__inc_r(decimal_env_t * decimal_env, decimal_t * d_r) { 
+  const uint8_t d_status = (*d_r)[DECIMAL_STATUS_INDEX]; 
+  switch (d_status) { 
+  case DECIMAL_STATUS__INVALID                        : goto label__exit; 
+  case DECIMAL_STATUS__ZERO                           : goto label__set_one; 
+  case DECIMAL_STATUS__INFINI                         : goto label__exit; 
+  case DECIMAL_STATUS__POS                            : goto label__positive_number; 
+  case DECIMAL_STATUS__NEG                            : goto label__negative_number; 
+  case DECIMAL_STATUS__POS_INFINI                     : goto label__exit; 
+  case DECIMAL_STATUS__NEG_INFINI                     : goto label__exit; 
+  case DECIMAL_STATUS__POS_EPSILON                    : goto label__set_one; 
+  case DECIMAL_STATUS__NEG_EPSILON                    : goto label__set_one; 
+  case DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE: goto label__exit; 
+  default: goto error_label__not_listed_status; 
+  }; 
+  assert(false); 
+  
+ label__set_one: { 
+    (*d_r)[DECIMAL_STATUS_INDEX] = DECIMAL_STATUS__POS; 
+    decimal_mantisse__set_eof_r(d_r); 
+    (*d_r)[DECIMAL_FIXED_POINT_INDEX] = 1; 
+    goto label__exit; 
+  }; 
+  
+ label__positive_number: { 
+    int index; 
+    index = DECIMAL_FIXED_POINT_INDEX; 
+    // The current digits of 'd' could be too big to get incremented — so we have to skip & adjust them. 
+    for (;;) { 
+      const uint8_t d_v = (*d_r)[index]; 
+      if (d_v == DECIMAL_EOF_BYTE) { 
+ 	(*d_r)[index] = 1; 
+	break; 
+      }; 
+      if (d_v < DECIMAL_BASE - 1) { 
+ 	(*d_r)[index]++; 
+	break; 
+      }; 
+      (*d_r)[index] = 0; 
+      index++; 
+      if (index >= DECIMAL_DIGITS_INDEX_XLAST) { 
+	(*d_r)[DECIMAL_STATUS_INDEX] = DECIMAL_STATUS__POS_INFINI; 
+	break; 
+      }; 
+      continue; 
+    }; 
+    goto label__exit; 
+  }; 
+
+ label__negative_number: { 
+    int index; 
+    index = DECIMAL_FIXED_POINT_INDEX; 
+    const uint8_t d_v = (*d_r)[index]; 
+    
+    // First, check if: -1 < d < 0 
+    if (d_v == 0 && ((*d_r)[index+1] == DECIMAL_EOF_BYTE)) { 
+      // So: -1 < d < 0 
+      // Thus, 'd' will turn positive. 
+      (*d_r)[DECIMAL_STATUS_INDEX] = DECIMAL_STATUS__POS; 
+      // Now, computing: 1 - d 
+      index = DECIMAL_DIGITS_INDEX; 
+      for (;;) { 
+	const uint8_t d_v = (*d_r)[index]; 
+	if (d_v != DECIMAL_EOF_BYTE) break; 
+	index++; 
+	if (index == DECIMAL_FIXED_POINT_INDEX) goto label__error__malformed_number; 
+      }; 
+      if (0 == (*d_r)[index]) goto label__error__malformed_number; 
+      (*d_r)[index] = (DECIMAL_BASE - d_v); 
+      for (;;) { 
+	index++; 
+	if (index == DECIMAL_FIXED_POINT_INDEX) break; 
+	const uint8_t d_v = (*d_r)[index]; 
+	(*d_r)[index] = (DECIMAL_BASE - (d_v + 1)); 
+      }; 
+      // We're done. 
+      goto label__exit; 
+    }; 
+    
+    // Second, check if: -1 == d 
+    if (d_v == 1 && ((*d_r)[index+1] == DECIMAL_EOF_BYTE) && ((*d_r)[index-1] == DECIMAL_EOF_BYTE)) { 
+      (*d_r)[index] = 0; 
+      (*d_r)[DECIMAL_STATUS_INDEX] = DECIMAL_STATUS__ZERO; 
+      goto label__exit; 
+    }; 
+    
+    // Third, now we know that 'd' is lower than -1 — The actual decrementing loop. 
+    for (;;) { 
+      // The current digits of 'd' could be too small to get decremented — so we have to skip & adjust them. 
+      const uint8_t d_v = (*d_r)[index]; 
+      if (d_v == DECIMAL_EOF_BYTE) goto label__error__malformed_number; // That should not happen, as 'd' is lower than -1. 
+      if (d_v > 1) { 
+	(*d_r)[index]--; 
+	break; 
+      };
+      if (d_v > 0) { 
+	// Instant normalization. 
+	if (index == DECIMAL_DIGITS_INDEX_ELAST) { 
+	  (*d_r)[index] = DECIMAL_EOF_BYTE; 
+	} 
+	else if ((*d_r)[index+1] == DECIMAL_EOF_BYTE) { 
+	  (*d_r)[index] = DECIMAL_EOF_BYTE; 
+	} 
+	else { 
+	  (*d_r)[index] = 0; 
+	}; 
+	break; 
+      }; 
+      (*d_r)[index] = DECIMAL_BASE - 1; 
+      index++; 
+      if (index > DECIMAL_DIGITS_INDEX_ELAST) { goto label__error__malformed_number; }; 
+    }; 
+    // Normalization was already done. 
+    // We're done. 
+    goto label__exit; 
+  }; 
+  
+ label__exit: { 
+#ifdef RETURN_ERROR 
+    return DECIMAL__OK; 
+#else 
+    return d_r; 
+#endif 
+  }; 
+  
+ label__error__malformed_number: { 
+    decimal_env -> error_id = DECIMAL__MALFORMED_NUMBER; 
+    //snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Malformed number: index = %d — char = %u", (int)index, ((unsigned int)(*d_r)[index])); 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Malformed number"); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+  }; 
+
+ error_label__not_listed_status: { 
+    const char * status_cstr = decimal_status__cstr(d_status); 
+    decimal_env -> error_id = DECIMAL__STATUS_NOT_LISTED_IN_SWITCH; 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Status not listed in switch: %d [%s]", ((int)d_status), status_cstr); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+  }; 
+  
+}; 
+
+
+
+
+RETURN_TYPE_T decimal__dec_r(decimal_env_t * decimal_env, decimal_t * d_r) { 
+  decimal__neg_r(decimal_env, d_r); 
+  decimal__inc_r(decimal_env, d_r); 
+  decimal__neg_r(decimal_env, d_r); 
+#ifdef RETURN_ERROR 
+  return decimal_env -> error_id; 
+#else 
+  if (DECIMAL__OK != decimal_env -> error_id) { 
+    return NULL; 
+  }
+  else { 
+    return d_r; 
+  }; 
+#endif 
+}; 

@@ -1,0 +1,359 @@
+
+static void decimal__mantisse__shift_right_by_r(decimal_env_t * decimal_env, uint8_t * d_mantisse, const uint8_t d_mantisse_size, const uint8_t shift_n, const uint8_t normalization_huh, uint8_t * empty_huh_r, uint8_t * epsilon_huh_r) { 
+  uint8_t d_first_index; 
+  uint8_t d_last_index; 
+  { 
+    uint8_t empty_huh; 
+    decimal_mantisse__get_last_and_first_indexes(d_mantisse, d_mantisse_size, MANTISSE_ENDS__ZERO__IGNORE_BOTH__MASK, &d_last_index, &d_first_index, &empty_huh); 
+    if (empty_huh) { 
+      if (empty_huh_r != NULL) *empty_huh_r = true; 
+      return; 
+    }; 
+    if (empty_huh_r != NULL) *empty_huh_r = false; 
+  }; 
+  const int16_t d_len = ((int16_t)d_last_index) - ((int16_t)d_first_index) + 1; 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "d_first_index: "); dputn(STDERR_FILENO, d_first_index); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "d_last_index : "); dputn(STDERR_FILENO, d_last_index ); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "d_len        : "); dputn(STDERR_FILENO, d_len        ); write_eol(STDERR_FILENO);); 
+
+  const int16_t new_last_index   = ((int16_t)  d_last_index) - ((int16_t) shift_n); 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "new_last_index : "); dputn(STDERR_FILENO, new_last_index ); write_eol(STDERR_FILENO);); 
+  if (new_last_index < 0) { 
+    if (epsilon_huh_r != NULL) { *epsilon_huh_r = true; }; 
+    return; 
+  }; 
+  
+  if (epsilon_huh_r != NULL) { *epsilon_huh_r = false; }; 
+  
+  const int16_t new_first_index0 = ((int16_t) d_first_index) - ((int16_t) shift_n); 
+  const int16_t new_first_index  = MAX(0,new_first_index0); 
+  const int16_t new_len = new_last_index - new_first_index + 1; 
+  assert(new_len > 0); 
+  
+  bcopy(d_mantisse + d_first_index, d_mantisse + new_first_index, new_len); 
+  memset(d_mantisse + new_last_index + 1, DECIMAL_EOF_BYTE, d_mantisse_size - (new_last_index + 1)); 
+  
+  if (normalization_huh) { 
+    if (new_last_index < DECIMAL_FIXED_POINT_SIZE) { 
+      bzero(d_mantisse + new_last_index + 1, DECIMAL_FIXED_POINT_SIZE - new_last_index); 
+    }; 
+  }; 
+  
+}; 
+
+
+
+static void decimal__mantisse__shift_left_by_r(decimal_env_t * decimal_env, uint8_t * d_mantisse, const uint8_t d_mantisse_size, const uint8_t shift_n, const uint8_t normalization_huh, uint8_t * empty_huh_r, uint8_t * infinity_huh_r) { 
+  uint8_t d_first_index; 
+  uint8_t d_last_index; 
+  { 
+    uint8_t empty_huh; 
+    decimal_mantisse__get_last_and_first_indexes(d_mantisse, d_mantisse_size, MANTISSE_ENDS__ZERO__IGNORE_BOTH__MASK, &d_last_index, &d_first_index, &empty_huh); 
+    if (empty_huh) { 
+      if (empty_huh_r != NULL) *empty_huh_r = true; 
+      return; 
+    }; 
+    if (empty_huh_r != NULL) *empty_huh_r = false; 
+  }; 
+  const int16_t d_len = ((int16_t)d_last_index) - ((int16_t)d_first_index) + 1; 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "d_first_index: "); dputn(STDERR_FILENO, d_first_index); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "d_last_index : "); dputn(STDERR_FILENO, d_last_index ); write_eol(STDERR_FILENO);); 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "d_len        : "); dputn(STDERR_FILENO, d_len        ); write_eol(STDERR_FILENO);); 
+
+  const int16_t new_first_index = ((int16_t) d_first_index) + ((int16_t) shift_n); 
+  DEBUG_STATEMENT(10,write_string(STDERR_FILENO, "[DEBUG] "); write_string(STDERR_FILENO, "new_first_index : "); dputn(STDERR_FILENO, new_first_index ); write_eol(STDERR_FILENO);); 
+  if (new_first_index >= d_mantisse_size) { 
+    if (infinity_huh_r != NULL) { *infinity_huh_r = true; }; 
+    return; 
+  }; 
+  
+  if (infinity_huh_r != NULL) { *infinity_huh_r = false; }; 
+  
+  const int16_t new_last_index0  = ((int16_t)  d_last_index) + ((int16_t) shift_n); 
+  const int16_t new_last_index   = MIN(d_mantisse_size-1,new_last_index0); 
+  const int16_t new_len          = new_last_index - new_first_index + 1; 
+  assert(new_len > 0); 
+  
+  bcopy(d_mantisse + d_first_index, d_mantisse + new_first_index, new_len); 
+  memset(d_mantisse, DECIMAL_EOF_BYTE, new_first_index); 
+  
+  if (normalization_huh) { 
+    if (new_first_index > DECIMAL_FIXED_POINT_SIZE) { 
+      bzero(d_mantisse + DECIMAL_FIXED_POINT_SIZE, new_first_index - DECIMAL_FIXED_POINT_SIZE); 
+    }; 
+  }; 
+  
+}; 
+
+
+
+RETURN_TYPE_T decimal__shift_right_by_r(decimal_env_t * decimal_env, decimal_t * d_r, const int16_t int16_shift_n) { 
+  const uint8_t d_status = (*d_r)[DECIMAL_STATUS_INDEX]; 
+  goto label__start; 
+
+ label__exit: { 
+#ifdef RETURN_ERROR 
+    return DECIMAL__OK; 
+#else 
+    return d_r; 
+#endif 
+  };
+
+ label__error__number_was_empty: { 
+    decimal_env -> error_id = DECIMAL__NUMBER_WAS_EMPTY; 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Number was empty"); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+  }; 
+
+ label__error__not_listed_status: { 
+    const char * d_status_cstr = decimal_status__cstr(d_status); 
+    decimal_env -> error_id = DECIMAL__STATUS_NOT_LISTED_IN_SWITCH; 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Status not listed in switch: %d [%s]", ((int)d_status), d_status_cstr); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+  }; 
+  
+
+  label__start: {}; 
+  if (0 == int16_shift_n) goto label__exit; 
+  switch (d_status) { 
+  case DECIMAL_STATUS__INVALID       : goto label__exit; 
+  case DECIMAL_STATUS__ZERO          : goto label__exit; 
+  case DECIMAL_STATUS__INFINI        : goto label__exit; 
+  case DECIMAL_STATUS__POS           : break; 
+  case DECIMAL_STATUS__NEG           : break; 
+  case DECIMAL_STATUS__POS_INFINI    : goto label__exit; 
+  case DECIMAL_STATUS__NEG_INFINI    : goto label__exit; 
+  case DECIMAL_STATUS__POS_EPSILON   : goto label__exit; 
+  case DECIMAL_STATUS__NEG_EPSILON   : goto label__exit; 
+  case DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE: goto label__exit; 
+  default: goto label__error__not_listed_status; 
+  }; 
+  
+  if (int16_shift_n > UINT8_MAX) { 
+    (*d_r)[DECIMAL_STATUS_INDEX] = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__POS_EPSILON : DECIMAL_STATUS__NEG_EPSILON; 
+    goto label__exit; 
+  }; 
+  if ((-int16_shift_n) > UINT8_MAX) { 
+    (*d_r)[DECIMAL_STATUS_INDEX] = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__POS_INFINI : DECIMAL_STATUS__NEG_INFINI; 
+    goto label__exit; 
+  }; 
+
+  uint8_t * d_mantisse = &((*d_r)[DECIMAL_DIGITS_INDEX_FIRST]); 
+  const uint8_t d_mantisse_size = DECIMAL_DIGITS_SIZE; 
+  if (int16_shift_n > 0) { 
+    uint8_t shift_n = int16_shift_n; 
+    uint8_t empty_huh; 
+    uint8_t epsilon_huh; 
+    decimal__mantisse__shift_right_by_r(decimal_env, d_mantisse, d_mantisse_size, shift_n, /*normalization_huh*/true, &empty_huh, &epsilon_huh); 
+    if (empty_huh) { goto label__error__number_was_empty; }; 
+    if (epsilon_huh) { 
+      (*d_r)[DECIMAL_STATUS_INDEX] = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__POS_EPSILON : DECIMAL_STATUS__NEG_EPSILON; 
+      goto label__exit; 
+    }; 
+  } 
+  else { 
+    uint8_t shift_n = (int16_t)(-((int16_t)int16_shift_n)); 
+    uint8_t empty_huh; 
+    uint8_t infinity_huh; 
+    decimal__mantisse__shift_left_by_r(decimal_env, d_mantisse, d_mantisse_size, shift_n, /*normalization_huh*/true, &empty_huh, &infinity_huh); 
+    if (empty_huh) { goto label__error__number_was_empty; }; 
+    if (infinity_huh) { 
+      (*d_r)[DECIMAL_STATUS_INDEX] = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__POS_INFINI : DECIMAL_STATUS__NEG_INFINI; 
+      goto label__exit; 
+    }; 
+  }; 
+  
+  DEBUG_STATEMENT(10,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", "[ALL_DONE]", " ", "d_mantisse = "); decimal_mantisse__print_raw_ln_r(STDERR_FILENO, decimal_env, d_mantisse, d_mantisse_size);); 
+  
+  goto label__exit; 
+  
+  assert(false); 
+}; 
+
+
+
+RETURN_TYPE_T decimal__shift_left_by_r(decimal_env_t * decimal_env, decimal_t * d_r, const int16_t int16_shift_n) { 
+  return decimal__shift_right_by_r(decimal_env, d_r, -int16_shift_n); 
+}; 
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ======================================================================= */
+/* ******************************** OLDIES ******************************* */
+
+
+#if 0 
+static void decimal_mantisse__shift_right_by_r____OLD(decimal_t * d_r, const uint8_t shift_n) { 
+  if (0 == shift_n) goto label__exit; 
+  
+  const uint8_t shift100 = shift_n >> 1; 
+  const uint8_t shift10  = shift_n & 1; 
+  
+  if (1 == shift10) { 
+    int index; 
+    uint8_t digit0; 
+    uint8_t digit1; 
+    uint8_t digit100; 
+    index = 0; 
+    for (;;) { 
+      index++; 
+      if ((*d_r)[index] != DECIMAL_EOF_BYTE) break; 
+    }; 
+    digit100 = (*d_r)[index]; 
+    digit1   = digit100 / 10; 
+    digit0   = digit100 % 10; 
+    if (index > 1) { 
+      (*d_r)[index - 1] = (0 == digit0) ? DECIMAL_EOF_BYTE : 10*digit0; 
+    }; 
+    for (;;) { 
+      index++; 
+      if (index > DECIMAL_SIZE) break; 
+      digit100 = (*d_r)[index]; 
+      if (digit100 == DECIMAL_EOF_BYTE) break; 
+      digit0 = digit100 % 10; 
+      (*d_r)[index - 1] = 10*digit0 + digit1; 
+      digit1 = digit100 / 10; 
+    }; 
+    (*d_r)[index - 1] = (digit1 != 0) ? digit1 : ( (index - 1 == 1 + DECIMAL_FIXED_POINT_SIZE) ? 0 : DECIMAL_EOF_BYTE ); 
+  }; 
+  
+  if (shift100 > 0) { 
+    bcopy((*d_r) + 1 + shift100, (*d_r) + 1, DECIMAL_SIZE - 1 - shift100); 
+    memset((*d_r) + DECIMAL_SIZE - shift100, DECIMAL_EOF_BYTE, shift100); 
+    // Normalization 
+    { 
+      int index = DECIMAL_FIXED_POINT_INDEX; 
+      for (;;) { 
+	if ((*d_r)[index] == DECIMAL_EOF_BYTE) (*d_r)[index] = 0; 
+	index--; 
+      if (index <= 0) break; 
+      }; 
+    }
+  }; 
+
+  // Normalization 
+  { 
+    decimal_mantisse__ZERO2EOF_right_r(d_r); 
+    decimal_status__if_ZERO_then_set_EPSILON_status_r(d_r); 
+  };
+  
+ label__exit: 
+  return; 
+}; 
+#endif 
+
+
+
+
+#if 0 
+static RETURN_TYPE_T decimal__shift_right_by_r__OLD(decimal_env_t * decimal_env, decimal_t * d_r, const uint8_t shift_n) { 
+  if (0 == shift_n) goto label__exit; 
+  const uint8_t status = (*d_r)[DECIMAL_STATUS_INDEX]; 
+  switch (status) { 
+  case DECIMAL_STATUS__INVALID       : goto label__exit; 
+  case DECIMAL_STATUS__ZERO          : goto label__exit; 
+  case DECIMAL_STATUS__INFINI        : goto label__exit; 
+  case DECIMAL_STATUS__POS           : break; 
+  case DECIMAL_STATUS__NEG           : break; 
+  case DECIMAL_STATUS__POS_INFINI    : goto label__exit; 
+  case DECIMAL_STATUS__NEG_INFINI    : goto label__exit; 
+  case DECIMAL_STATUS__POS_EPSILON   : goto label__exit; 
+  case DECIMAL_STATUS__NEG_EPSILON   : goto label__exit; 
+  case DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE: goto label__exit; 
+  default: goto label__error__not_listed_status; 
+  }; 
+  
+  const uint8_t shift100 = shift_n >> 1; 
+  const uint8_t shift10  = shift_n & 1; 
+  
+  if (1 == shift10) { 
+    int index; 
+    uint8_t digit0; 
+    uint8_t digit1; 
+    uint8_t digit100; 
+    index = 0; 
+    for (;;) { 
+      index++; 
+      if ((*d_r)[index] != DECIMAL_EOF_BYTE) break; 
+    }; 
+    digit100 = (*d_r)[index]; 
+    digit1   = digit100 / 10; 
+    digit0   = digit100 % 10; 
+    if (index > 1) { 
+      (*d_r)[index - 1] = (0 == digit0) ? DECIMAL_EOF_BYTE : 10*digit0; 
+    }; 
+    for (;;) { 
+      index++; 
+      if (index > DECIMAL_SIZE) break; 
+      digit100 = (*d_r)[index]; 
+      if (digit100 == DECIMAL_EOF_BYTE) break; 
+      digit0 = digit100 % 10; 
+      (*d_r)[index - 1] = 10*digit0 + digit1; 
+      digit1 = digit100 / 10; 
+    }; 
+    (*d_r)[index - 1] = (digit1 != 0) ? digit1 : ( (index - 1 == 1 + DECIMAL_FIXED_POINT_SIZE) ? 0 : DECIMAL_EOF_BYTE ); 
+  }; 
+  
+  if (shift100 > 0) { 
+    bcopy((*d_r) + 1 + shift100, (*d_r) + 1, DECIMAL_SIZE - 1 - shift100); 
+    memset((*d_r) + DECIMAL_SIZE - shift100, DECIMAL_EOF_BYTE, shift100); 
+    // Normalization 
+    {
+      int index = DECIMAL_FIXED_POINT_INDEX; 
+      for (;;) { 
+	if ((*d_r)[index] == DECIMAL_EOF_BYTE) (*d_r)[index] = 0; 
+	index--; 
+      if (index <= 0) break; 
+      }; 
+    }
+  }; 
+
+  // Normalization 
+  { 
+    decimal_mantisse__ZERO2EOF_right_r(d_r); 
+    decimal_status__if_ZERO_then_set_EPSILON_status_r(d_r); 
+  };
+  
+  
+ label__exit: { 
+#ifdef RETURN_ERROR 
+    return DECIMAL__OK; 
+#else 
+    return d_r; 
+#endif 
+  };
+
+ label__error__not_listed_status: { 
+    const char * status_cstr = decimal_status__cstr(status); 
+    decimal_env -> error_id = DECIMAL__STATUS_NOT_LISTED_IN_SWITCH; 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Status not listed in switch: %d [%s]", ((int)status), status_cstr); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+  }; 
+
+}; 
+#endif 
