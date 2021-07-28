@@ -29,9 +29,37 @@ Nous aurions bien laissé ce programme dans le [domaine public](https://fr.wikip
 ## Points techniques
 
 
+base 
+
+int8 
+
+## Vitesse d'exécution
 
 
-## Future & TODOs  
+
+## Futur & TODOs  
+
+Nous travaillons aléatoirement sur les différents projets en cours. Il est tout à fait probable que ce projet n'avance pas au cours des prochaines années. 
+
+Cela ayant été précisé: 
+ - Il faut écrire une fonction de conversion depuis une chaîne de caractères. 
+   (Pour l'instant, on convertit en [*float*](https://en.wikipedia.org/wiki/Single-precision_floating-point_format), puis dans le format interne. Ceci entraîne justement les arrondis qui nous voulions éviter, et en plus fait dépendre de la librairie [*math*](https://fr.wikipedia.org/wiki/Math.h). Bref. ☹)
+ - Améliorer la [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop) afin d'avoir un historique et des raccourcis claviers utilisables. 
+ - Implémenter une fonction pour calculer les chiffres de [Pi](https://fr.wikipedia.org/wiki/Pi). 
+ - Implémenter les fonctions circulaires: *cos*, *sin*, etc. 
+ - Implémenter *exp*, *ln*, *sqrt*, *carre*, *power*, etc. 
+ - Implémenter un type *string*. 
+ - Implémenter des variables (en particulier *ans*). 
+ - Implémenter des tableaux. 
+ - Implémenter le traitement de données (un fichier *dat* en entrée, et un fichier *dat* en sortie). 
+ - Implémenter un lien avec [Gnuplot](https://fr.wikipedia.org/wiki/Gnuplot). 
+ - Implémenter une création de fichiers graphiques ([BMP](https://fr.wikipedia.org/wiki/Windows_bitmap)? [PCX](https://fr.wikipedia.org/wiki/PCX)? [Farbfeld](https://tools.suckless.org/farbfeld/)?). 
+ - Implémenter une [FFT](https://fr.wikipedia.org/wiki/Transformation_de_Fourier_rapide). 
+ - 
+ - 
+ - 
+ - GUI
+ -  
 
 
 Merci!! :smile: 
