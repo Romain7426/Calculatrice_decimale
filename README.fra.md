@@ -45,6 +45,8 @@ Par défaut, l'installation se fait dans le sous-répertoire './destroot'. Cela 
 
 Dans l'ensemble, le programme ne dépend pas de grand chose: un compilateur [C99](https://fr.wikipedia.org/wiki/C_(langage)#Normalisation), et éventuellement [GNU Make](https://en.wikipedia.org/wiki/GNU_make). Faire compiler le programme ne devrait pas poser de problèmes majeurs (testé avec [clang](https://fr.wikipedia.org/wiki/Clang), [gcc4](https://fr.wikipedia.org/wiki/GNU_Compiler_Collection), et [gcc8](https://fr.wikipedia.org/wiki/GNU_Compiler_Collection); hélas [pcc](https://en.wikipedia.org/wiki/Portable_C_Compiler) se plaint).  
 
+Le programme ayant été développé sous [OpenBSD](https://fr.wikipedia.org/wiki/OpenBSD), il devrait fonctionner sous tous les autres [BSD](https://fr.wikipedia.org/wiki/Berkeley_Software_Distribution) et autres systèmes compatibles avec [Unix](https://fr.wikipedia.org/wiki/Unix) (en particulier, il fonctionne sous [MacOSX](https://fr.wikipedia.org/wiki/MacOS)). Sur [Windows](https://fr.wikipedia.org/wiki/Microsoft_Windows), nous ne savons pas, nous n'avons pas essayé, mais le programme devrait pouvoir fonctionner avec [Cygwin](https://fr.wikipedia.org/wiki/Cygwin), [MinGW](https://fr.wikipedia.org/wiki/MinGW), etc.  
+
 
 ## Considérations techniques
 
