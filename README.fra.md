@@ -26,7 +26,11 @@ Nous ne portons aucun intérêt à la [propriété intellectuelle](https://fr.wi
 Nous aurions bien laissé ce programme dans le [domaine public](https://fr.wikipedia.org/wiki/Domaine_public_(propri%C3%A9t%C3%A9_intellectuelle)), mais il semblerait que il existerait une possibilité pour s'approprier du matériel qui serait dans le domaine public, et d'en restreindre l'accès. Afin de prévenir ce cas dégénéré, ce programme a été publié sous une licence équivalente à la [licence ISC](https://fr.wikipedia.org/wiki/Licence_ISC), mais en plus relâchée (cf. le fichier [COPYING](https://github.com/Romain7426/Calculatrice_decimale/blob/main/COPYING) pour la consulter in extenso). En ce qui nous concerne, vous pouvez faire ce que vous voulez avec ce programme et son code, dans la mesure vous n'empêchez personne de l'utiliser, y compris nous-mêmes. 
 
 
-## Points techniques
+## Compilation
+
+
+
+## Considérations techniques
 
 
 base 
@@ -55,11 +59,11 @@ Cela ayant été précisé:
  - Implémenter un lien avec [Gnuplot](https://fr.wikipedia.org/wiki/Gnuplot). 
  - Implémenter une création de fichiers graphiques ([BMP](https://fr.wikipedia.org/wiki/Windows_bitmap)? [PCX](https://fr.wikipedia.org/wiki/PCX)? [Farbfeld](https://tools.suckless.org/farbfeld/)?). 
  - Implémenter une [FFT](https://fr.wikipedia.org/wiki/Transformation_de_Fourier_rapide). 
- - 
- - 
- - 
- - GUI
- -  
+ - Une [GUI](https://fr.wikipedia.org/wiki/Interface_graphique) simple en [FLTK](https://fr.wikipedia.org/wiki/FLTK). 
+ - Une [GUI](https://fr.wikipedia.org/wiki/Interface_graphique) comme celle de [DrRacket](https://fr.wikipedia.org/wiki/Racket_(langage)). 
+ - Une [GUI](https://fr.wikipedia.org/wiki/Interface_graphique) de type tableur, comme Excel (parce que c'est très comfortable! ☺). 
+ - … 
+ - Bref, avoir un truc utilisable! 
 
 
 Merci!! :smile: 
