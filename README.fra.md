@@ -75,6 +75,7 @@ Nous n'avons pas tout testé. Nous avons surtout regardée la division qui l'op�
    Soit: 1 division en 0.000406608 seconde = 1 division en 0.406608 milli-seconde = 1 division en 406.608 micro-secondes 
 </pre>
 
+Ce n'est pas extraordinaire, mais cela pourrait être pire. 
 
 ## Futur & TODOs  
 
