@@ -43,7 +43,7 @@ int8
 
 ## Futur & TODOs  
 
-Nous travaillons aléatoirement sur les différents projets en cours. Il est tout à fait probable que ce projet n'avance pas au cours des prochaines années. 
+Nous travaillons aléatoirement sur les différents projets en cours. Il est tout à fait probable que ce projet n'avance pas au cours des prochaines années, voire décennies. 
 
 Cela ayant été précisé: 
  - Il faut écrire une fonction de conversion depuis une chaîne de caractères. 
