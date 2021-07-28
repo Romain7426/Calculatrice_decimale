@@ -43,7 +43,7 @@ La configuration n'est pas basée sur [GNU Autohell](https://en.wikipedia.org/wi
 
 Par défaut, l'installation se fait dans le sous-répertoire './destroot'. Cela peut se changer en éditant le *Makefile*. 
 
-Dans l'ensemble, le programme ne dépend pas de grand chose: un compilateur [C99](https://fr.wikipedia.org/wiki/C_(langage)#Normalisation), et éventuellement [GNU Make](https://en.wikipedia.org/wiki/GNU_make). Faire compiler le programme ne devrait pas poser de problèmes majeurs (testé avec [clang](https://fr.wikipedia.org/wiki/Clang), [gcc4](https://fr.wikipedia.org/wiki/GNU_Compiler_Collection), et [gcc8](https://fr.wikipedia.org/wiki/GNU_Compiler_Collection); et [pcc](https://en.wikipedia.org/wiki/Portable_C_Compiler) se plaint).  
+Dans l'ensemble, le programme ne dépend pas de grand chose: un compilateur [C99](https://fr.wikipedia.org/wiki/C_(langage)#Normalisation), et éventuellement [GNU Make](https://en.wikipedia.org/wiki/GNU_make). Faire compiler le programme ne devrait pas poser de problèmes majeurs (testé avec [clang](https://fr.wikipedia.org/wiki/Clang), [gcc4](https://fr.wikipedia.org/wiki/GNU_Compiler_Collection), et [gcc8](https://fr.wikipedia.org/wiki/GNU_Compiler_Collection); hélas [pcc](https://en.wikipedia.org/wiki/Portable_C_Compiler) se plaint).  
 
 
 ## Considérations techniques
@@ -55,6 +55,25 @@ int8
 
 ## Vitesse d'exécution
 
+Nous n'avons pas tout testé. Nous avons surtout regardée la division qui l'opération la plus lente, et de loin. 
+
+<pre>
+ - Apple — MacBook Air [Mid-2011] 
+   Processor: 1.6GHz Intel Core i5-2467M [ https://en.wikipedia.org/wiki/List_of_Intel_Core_i5_processors ] 
+   [ 1 ; 65535 ] x [ 1 ; 65535 ] { soit 4294836225 points } -> all succeeded      // Actual count matches: 4294836225 ( 4294967296 - 131071 ) 
+   Temps: 23041m27.315s (soit 16,0 jours) soit 1382487.315s 
+   Soit: 3106.600818974 divisions par seconde  ((rappel: pour sur un processeur cadencé à 1.6 giga-opérations par seconde, soit 0.5 million [515k] cycles nécessaires…!) 
+   Soit: 186396.04913844 divisions par minute 
+   Soit: 1 division en 0.000321895 seconde = 1 division en 0.321895 milli-seconde = 1 division en 321.895 micro-secondes 
+
+ - GIGABYTE — MZGLKAP-00 
+   Processor: Intel(R) Celeron(R) J4105 CPU @ 1.50GHz [ https://en.wikipedia.org/wiki/List_of_Intel_Celeron_microprocessors ] 
+   [ 1 ; 65535 ] x [ 1 ; 65535 ] { soit 4294836225 points } -> all succeeded      // Actual count matches: 4294836225 ( 4294967296 - 131071 ) 
+   Temps: 29105m13.69s (soit 20,2 jours) soit 1746313.69s 
+   Soit: 2459.372705828 divisions par seconde  ((rappel: sur un processeur cadencé à 1.5 giga-opérations par seconde, soit 0.6 million [610k] cycles nécessaires…!) 
+   Soit: 147562.36234968 divisions par minute 
+   Soit: 1 division en 0.000406608 seconde = 1 division en 0.406608 milli-seconde = 1 division en 406.608 micro-secondes 
+</pre>
 
 
 ## Futur & TODOs  
