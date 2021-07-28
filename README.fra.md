@@ -48,10 +48,28 @@ Dans l'ensemble, le programme ne dépend pas de grand chose: un compilateur [C99
 
 ## Considérations techniques
 
+L'idée était de pouvoir faire fonctionner la bibliothèque sur un processeur huit bits. Seize bits étant comfortables, nous avons utilisé des entiers seize bits ici et là. Ainsi, la bibliothèque devrait fonctionner sans modification sur un processeur seize bits. Pour un processeur huit bits, il n'y a pas de problèmes majeurs, et la bibliothèque devrait pouvoir être amendée pour enlever toutes les références aux entiers seize bits. 
 
-base 
+Nous avons fait simple: un nombre décimal est un tableau. Nous avons réservé un octet pour le statut, et le reste pour les chiffres. 
 
-int8 
+Par défaut, la bibliothèque est en base cent. Mais il est possible de changer cette base: 10, 2, 254, etc. La base minimale est deux. La base maximale est 254. 
+
+La base 254 est celle qui permet de contenir le plus d'information. Toutefois, cette base ne permet pas de représenter les chiffres à virgule en base dix de façon exacte. 
+La base 250 est la base la plus grande qui permet de représenter exactement les décimaux en base dix (dans cette base, «0,10» s'écrit «0,25»). 
+Une excellente base est la base 240, car elle est multiple de 10, 3, 8, 12, 60. 
+Une autre base intéressante est 210, car elle ajoute 7 et donc permet de représenter la fraction «1/7» de façon exacte (en plus de 2, 3, 5, et donc 10). 
+
+La taille du tableau est au maximum de deux cent cinquante six octets. Par défaut, cette taille est de deux cent cinquante six octets. Cette taille peut être plus petite. Mais elle ne peut pas être plus grande, du fait de notre exigence que la bibliothèque puisse fonctionner sur un processeur huit bits. 
+
+Nous sommes en virgule fixe, c'est-à-dire que le nombre de chiffres dédiés à la partie entière est fixé, et le nombre de chiffre dédié à la partie décimale est fixé. Il est possible de modifier le nombre de chiffre dédié à chaque partie (il faut recompiler). 
+
+Implémenter l'addition et la soustraction ne pose aucun problème. 
+
+Implémenter la multiplication est un peu plus complexe. 
+
+Le problème commence avec l'implémentation de la division. La division est une opération relevant de la virgule flottante. En internet, il faut donc changer de représentation. 
+Afin de nous assurer de l'exactitude de l'implémentation de la division, nous avons fait tourner 64k x 64k tests, qui se sont tous révélés positifs. A priori, l'algorithme fonctionne.  
+
 
 ## Vitesse d'exécution
 
