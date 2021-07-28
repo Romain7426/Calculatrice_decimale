@@ -4,7 +4,7 @@
 
 Bonjour tout le monde! ☺ 
 
-Ce programme est certes une calculatrice, mais une calculatrice décimale. C'est-à-dire que toutes les opérations sont effectuées en virgule fixe et en base dix. Pourquoi? Parce que j'avais envie d'avoir des résultats exacts lors de mes calculs. Et non pas «Oui, compte tenu de la réprésentation interne IEEE-machin, il y a des erreurs d'arrondi, etc.». Et moi, je suis un humain et pas une machine, donc je préfère la base dix à la base deux. 
+Ce programme est certes une calculatrice, mais une calculatrice décimale. C'est-à-dire que toutes les opérations sont effectuées en virgule fixe et en base dix. Pourquoi? Parce que j'avais envie d'avoir des résultats exacts lors de mes calculs. Et non pas «Oui, compte tenu de la réprésentation interne IEEE-machin, il y a des erreurs d'arrondi, bla bla bla, etc..». Et moi, je suis un humain et pas une machine, donc je préfère la base dix à la base deux. 
 
 Peut-être que il existait déjà un tel programme (des choses équivalentes sont nécessairement écrites en cryptographie), mais je n'en avais trouvé aucun, donc j'écrivis le mien. 
 
