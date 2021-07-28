@@ -322,11 +322,11 @@ Makefile:
 	echo "	rm -Rf destroot" >> $@
 	echo "	mkdir -p destroot" >> $@
 	echo "	mkdir -p destroot/bin" >> $@
-	echo "	cp -fp build/*.exe destroot/bin/" >> $@
+	echo "	cp -fp build/*.exe destroot/bin/calc-decimal" >> $@
 	echo "	mkdir -p destroot/lib" >> $@
-	echo "	cp -fp build/*.a destroot/lib/" >> $@
+	echo "	cp -fp build/calc.a destroot/lib/decimal.a" >> $@
 	echo "	mkdir -p destroot/include" >> $@
-	echo "	cp -fp src/anime.h destroot/include/" >> $@
+	echo "	cp -fp src/decimal.h destroot/include/" >> $@
 	echo "" >> $@
 	echo "" >> $@
 	echo "" >> $@

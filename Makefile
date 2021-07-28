@@ -40,11 +40,11 @@ destroot_do:
 	rm -Rf destroot
 	mkdir -p destroot
 	mkdir -p destroot/bin
-	cp -fp build/*.exe destroot/bin/
+	cp -fp build/*.exe destroot/bin/calc-decimal
 	mkdir -p destroot/lib
-	cp -fp build/*.a destroot/lib/
+	cp -fp build/calc.a destroot/lib/decimal.a
 	mkdir -p destroot/include
-	cp -fp src/anime.h destroot/include/
+	cp -fp src/decimal.h destroot/include/
 
 
 
