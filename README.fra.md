@@ -26,8 +26,24 @@ Nous ne portons aucun intérêt à la [propriété intellectuelle](https://fr.wi
 Nous aurions bien laissé ce programme dans le [domaine public](https://fr.wikipedia.org/wiki/Domaine_public_(propri%C3%A9t%C3%A9_intellectuelle)), mais il semblerait que il existerait une possibilité pour s'approprier du matériel qui serait dans le domaine public, et d'en restreindre l'accès. Afin de prévenir ce cas dégénéré, ce programme a été publié sous une licence équivalente à la [licence ISC](https://fr.wikipedia.org/wiki/Licence_ISC), mais en plus relâchée (cf. le fichier [COPYING](https://github.com/Romain7426/Calculatrice_decimale/blob/main/COPYING) pour la consulter in extenso). En ce qui nous concerne, vous pouvez faire ce que vous voulez avec ce programme et son code, dans la mesure vous n'empêchez personne de l'utiliser, y compris nous-mêmes. 
 
 
-## Compilation
+## Installation et compilation
 
+La procédure: 
+
+<pre>
+$ ./tools-compile.sh
+$ ./configure.sh
+$ make 
+$ make install 
+</pre>
+
+Les outils devraient compiler sans problème. 
+
+La configuration n'est pas basée sur [GNU Autohell](https://en.wikipedia.org/wiki/Autohell), néanmoins nécessite [GNU Make](https://en.wikipedia.org/wiki/GNU_make) (qui est un langage plus sympathique que le [shell standard](https://fr.wikipedia.org/wiki/Bourne_shell)). Si le fichier './configure.sh' ne le trouve pas, il faut éditer le fichier pour lui indiquer. 
+
+Par défaut, l'installation se fait dans le sous-répertoire './destroot'. Cela peut se changer en éditant le *Makefile*. 
+
+Dans l'ensemble, le programme ne dépend pas de grand chose: un compilateur [C99](https://fr.wikipedia.org/wiki/C_(langage)#Normalisation), et éventuellement [GNU Make](https://en.wikipedia.org/wiki/GNU_make). Faire compiler le programme ne devrait pas poser de problèmes majeurs (testé avec [clang](https://fr.wikipedia.org/wiki/Clang), [gcc4](https://fr.wikipedia.org/wiki/GNU_Compiler_Collection), et [gcc8](https://fr.wikipedia.org/wiki/GNU_Compiler_Collection); et [pcc](https://en.wikipedia.org/wiki/Portable_C_Compiler) se plaint).  
 
 
 ## Considérations techniques
