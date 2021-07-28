@@ -12,6 +12,69 @@ NB: Ce programme est loin d'être parfait.
 
 Toutes les fonctions sont dans une bibliothèque séparée; donc les fonctionnalités peuvent être incorporées dans n'importe quel autre programme. 
 
+## Example
+
+<pre>
+$ ./destroot/bin/calc-decimal --repl 3> ./stdlog.txt 
+> (1002/1000)*3
+3.006
+> ^D
+</pre>
+
+<pre>
+$ ./destroot/bin/calc-decimal                         
+./destroot/bin/calc-decimal: Decimal calculator.
+Usage: ./destroot/bin/calc-decimal [<options>] [<infile>] 
+  <infile> can be a filename or '-' for stdin (use './-' for a file named '-')
+Options:
+  -h,-?,--help,--usage                    Display this help
+  --copyright,--license,--licence         Display the program license
+  --copyright-cstr                        Display the program license as a C string
+  --copyright-cstr_macro                  Display the program license as a C string that can be included in a pre-processor macro
+  --copyright-ccomment                    Display the program license as a C comment
+  --copyright-shell_comment               Display the program license as a SHELL comment
+  --copyright-slash_comment               Display the program license as a double-slash comment
+  -v,--verbose                            Increase verbosity
+  -q,--quiet,--mute                       Do not tell anything
+  -V,--version                            Print program version
+  --example,--exemple                     Print an example
+  --url                                   Print url
+  --tests,--test                          Run some tests
+  --repl                                  Run as a REPL (Read-Eval-Print-Loop)
+  --stduser <file>                        Redirect all the talk to the user to <file>. (Default is stderr.) (Use 'stdout', 'stderr', and 'stdnull' to redirect to stdout, stderr, and /dev/null.)
+  --stdprint <file>                       Redirect textual output data to <file>. (Default is stdout.) ('stdout', 'stderr', 'stdnull' to redirect to stdout, stderr, /dev/null.)
+  --stddata <file>                        Non-textual output data is not printed on terminal. Redirect to <file>. (Default is fd 4 - get it by '4>&1' or '4>./data.txt'). ('stdout', 'stderr', 'stdnull' to redirect to stdout, stderr, /dev/null.)
+  --stdlog <file>                         Write stdlog to <file>. (By default, stdlog fd is 3; therefore the output of stdlog can be gotten using '3>&2' or '3>./stdlog.txt'.) (stdlog is intended for dev. But can be used by users.) (Use 'stdout', 'stderr', and 'stdnull' to redirect to stdout, stderr, and /dev/null.)
+  </pre>
+
+## Example d'utilisation de la bibliothèque 
+
+Voir le fichier [main.c](https://github.com/Romain7426/Calculatrice_decimale/blob/main/src/main.c). 
+
+<pre>
+#include "decimal.h" 
+
+void example(void) { 
+  uint8_t decimal_env__buffer[DECIMAL_ENV__SIZEOF]; 
+  decimal_env_t * decimal_env; 
+  decimal_env = decimal_env__make_b(sizeof(decimal_env__buffer), decimal_env__buffer, NULL, stdlog_d); 
+  
+  decimal_t d;	
+  decimal__cast_from_int_r(decimal_env, &d, 43);	
+  decimal_t e;	
+  decimal__cast_from_int_r(decimal_env, &e, 28);
+  decimal__print_r(stdprint_d, decimal_env, &d); write_string(stdprint_d, " + "); decimal__print_r(stdprint_d, decimal_env, &e); write_string(stdprint_d, " = "); 
+  decimal__add_r(decimal_env, &d, &e);	
+  decimal__print_r(stdprint_d, decimal_env, &d);	
+  write_string_ln(stdprint_d, ""); 
+}; 
+</pre>
+
+<pre>
+TODO XXX FIXME 
+Ajouter un exemple avec l'analyse d'une expression. 
+</pre>
+
 
 ## Auteurs  
  
@@ -102,8 +165,10 @@ Ce n'est pas extraordinaire, mais cela pourrait être pire. (Le but premier ici 
 Nous travaillons aléatoirement sur les différents projets en cours. Il est tout à fait probable que ce projet n'avance pas au cours des prochaines années, voire décennies. 
 
 Cela ayant été précisé: 
+ - Beaucoup de nettoyage et de «[réusinage](https://fr.wikipedia.org/wiki/R%C3%A9usinage_de_code)». 
  - Il faut écrire une fonction de conversion depuis une chaîne de caractères. 
    (Pour l'instant, on convertit en [*float*](https://en.wikipedia.org/wiki/Single-precision_floating-point_format), puis dans le format interne. Ceci entraîne justement les arrondis qui nous voulions éviter, et en plus fait dépendre de la librairie [*math*](https://fr.wikipedia.org/wiki/Math.h). Bref. ☹)
+ - Implémenter les directives («bye»/«quit»/«exit», etc.). 
  - Améliorer la [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop) afin d'avoir un historique et des raccourcis claviers utilisables. 
  - Implémenter une fonction pour calculer les chiffres de [Pi](https://fr.wikipedia.org/wiki/Pi). 
  - Implémenter les fonctions circulaires: *cos*, *sin*, etc. 
