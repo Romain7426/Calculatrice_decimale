@@ -296,7 +296,8 @@ extern char * uint_string_in_the_buffer(const unsigned int n, const int buffer_s
 #define uint_string_buffer_size(n)   ((sizeof((n)) << 3)+1)
 #define uint_string_on_the_heap(n)   uint_string_in_the_buffer((n), uint_string_buffer_size((n)), malloc(uint_string_buffer_size((n))))
 #define uint_string_on_the_stack(n)  uint_string_in_the_buffer((n), uint_string_buffer_size((n)), alloca(uint_string_buffer_size((n))))
-#define uint_string uint_string_on_the_heap
+#define uint_string         uint_string_on_the_heap
+#define uint_string__stack  uint_string_on_the_stack
 
 
 static char * int_string_base2_in_the_buffer(const int n_given, const int buffer_size, char * buffer) {

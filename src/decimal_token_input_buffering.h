@@ -28,7 +28,10 @@
  *  - There's no need to save the position in the buffer — as the buffer holds a full line and nothing more, the «column» field is the same information. 
  *  - When back-tracking, we're necessarily on the same line — we do no get through newline chars (oherwise, they would have to be counted). 
  */ 
-enum { DECIMAL_TOKEN_INPUT__BUFFER_SIZE = UINT16_MAX               - 1 }; // RL: UINT16_MAX (~0) should be kept aside to indicate an invalid value. 
+//enum { DECIMAL_TOKEN_INPUT__BUFFER_SIZE = UINT16_MAX               - 1 }; // RL: UINT16_MAX (~0) should be kept aside to indicate an invalid value. 
+enum { DECIMAL_TOKEN_INPUT__BUFFER_SIZE = 
+#include "sc_line_max.ci" 
+<< 1 }; 
 enum { DECIMAL_TOKEN_INPUT__LINE_MAX    = DECIMAL_TOKEN_INPUT__BUFFER_SIZE - 2 }; // RL: On top of the characters of the line, the buffer should be able to contain the newline char and the null char. 
 
 /* 

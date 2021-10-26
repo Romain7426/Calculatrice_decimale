@@ -105,7 +105,7 @@ int main2(const int argc, const char * argv[]) {
     return error_id; 
   }; 
   
-label__start: {}; 
+ label__start: {}; 
   
   if (!program_options__parse(argc, argv)) { 
     const char err_str[] = "Error while parsing options" "\n"; 
@@ -291,16 +291,32 @@ label__start: {};
 	    uint16_t bytecode_len; 
 	    char const_string_array[(1 << 14)]; 
 	    const uint16_t const_string_sizeof = sizeof(const_string_array); 
+	    bzero(const_string_array, const_string_sizeof); 
 	    bytecode_len = 0; 
 	    error_id = decimal_data_generation_003_from_syntax_filtering(token_env, &directive_or_expr_huh, bytecode_data, bytecode_size, &bytecode_len, const_string_array, const_string_sizeof, stduser_d, stdlog_d); 
 	    if (error_id != DECIMAL__OK) { goto label__exit; }; 
 
-#if 0 
+#if 1 
 	    { 
-	      dprintf(STDERR_FILENO, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: " "bytecode_len = %d" "\n", __func__, (int)bytecode_len); 
-	      for (int i = 0; i < bytecode_len; i++) { 
-		dputs_array(STDERR_FILENO, "bytecode[", int_string__stack(i), "]", " = ", int_string__stack(bytecode_data[i]), "(",  int_decimal_bytecode_type__get_cstr(bytecode_data[i]), ")", "\n"); 
-	      }; 
+	      //const int log_d = -1; 
+	      //const int log_d = STDERR_FILENO; 
+	      const int log_d = stdlog_d; 
+	      if (log_d > 0) { 
+		//const_string_array 
+		const char * p = const_string_array; 
+		p++; 
+		for (;;) { 
+		  const int len = strlen(p); 
+		  if (len <= 0) { break; }; 
+		  dputs_array(log_d, "const_string_array[", int_string__stack(p - const_string_array), "] ", " = ", p, "\n"); 
+		  p += len; 
+		  p++; 
+		};
+		dprintf(log_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: " "bytecode_len = %d" "\n", __func__, (int)bytecode_len); 
+		for (int i = 0; i < bytecode_len; i++) { 
+		  dputs_array(log_d, "bytecode[", int_string__stack(i), "]", " = ", int_string__stack(bytecode_data[i]), "(",  int_decimal_bytecode_type__get_cstr(bytecode_data[i]), ")", "\n"); 
+		}; 
+	      };
 	    }; 
 #endif 
 	    //dprintf(STDERR_FILENO, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: " "decimal_stack -> size = %d" "\n", __func__, (int)decimal_stack -> size); 

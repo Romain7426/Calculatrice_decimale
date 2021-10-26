@@ -149,8 +149,8 @@ RETURN_TYPE_T decimal__add_r(decimal_env_t * decimal_env, decimal_t * d_r, const
   
   if (same_sign) goto label__same_sign; 
   else goto label__opposite_sign; 
-
-
+  
+  
   label__same_sign: { 
     decimal_mantisse__EOF2ZERO_r(d_r); 
     int index = DECIMAL_DIGITS_INDEX; 
@@ -164,16 +164,44 @@ RETURN_TYPE_T decimal__add_r(decimal_env_t * decimal_env, decimal_t * d_r, const
     uint8_t retenue = 0; 
     for (;;) { 
       const uint16_t v = (*d_r)[index] + (*e_r)[index] + retenue; 
+      DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "d[", int_string__stack(index), "] = ", uint_string__stack((*d_r)[index]), "\n")); 
+      DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "e[", int_string__stack(index), "] = ", uint_string__stack((*e_r)[index]), "\n")); 
+      DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "r[", int_string__stack(index), "] = ", uint_string__stack(retenue), "\n")); 
+      DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "v[", int_string__stack(index), "] = ", uint_string__stack(v), "\n")); 
+      DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "B[", int_string__stack(index), "] = ", uint_string__stack(DECIMAL_BASE), "\n")); 
       if (v < DECIMAL_BASE) { 
 	(*d_r)[index] = v; 
+	retenue = 0; 
       }
       else { 
 	(*d_r)[index] = v - DECIMAL_BASE; 
 	retenue = 1; 
       }; 
       index++; 
-      if (index >= DECIMAL_DIGITS_INDEX_XLAST) break; 
-      if ((*e_r)[index] == DECIMAL_EOF_BYTE) break; 
+      if (index >= DECIMAL_DIGITS_INDEX_XLAST) { if (retenue > 0) goto label__pos_infinity; break; } 
+      if ((*e_r)[index] == DECIMAL_EOF_BYTE) { 
+	if (0 == retenue) break; 
+	for (;;) { 
+	  const uint8_t d_v = (*d_r)[index]; 
+	  const uint16_t  v = d_v + retenue; 
+	  DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "d[", int_string__stack(index), "] = ", uint_string__stack(d_v), "\n")); 
+	  DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "r[", int_string__stack(index), "] = ", uint_string__stack(retenue), "\n")); 
+	  DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "v[", int_string__stack(index), "] = ", uint_string__stack(v), "\n")); 
+	  DEBUG_STATEMENT(100,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "B[", int_string__stack(index), "] = ", uint_string__stack(DECIMAL_BASE), "\n")); 
+	  if (v < DECIMAL_BASE) { 
+	    (*d_r)[index] = v; 
+	    retenue = 0; 
+	  }
+	  else { 
+	    (*d_r)[index] = v - DECIMAL_BASE; 
+	    retenue = 1; 
+	  }; 
+	  index++; 
+	  if (0 == retenue) break; 
+	  if (index >= DECIMAL_DIGITS_INDEX_XLAST) goto label__pos_infinity; 
+	}; 
+	break; 
+      }; 
     }; 
     // Normalization 
     { 
@@ -184,6 +212,10 @@ RETURN_TYPE_T decimal__add_r(decimal_env_t * decimal_env, decimal_t * d_r, const
     goto label__exit; 
   }; 
   
+  label__pos_infinity: { 
+    (*d_r)[0] = DECIMAL_STATUS__POS_INFINI; 
+    goto label__exit; 
+  }; 
   
   // Not same sign => substraction 
  label__opposite_sign: { 

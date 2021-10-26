@@ -228,7 +228,11 @@ int_decimal_error_t decimal_vm__step(decimal_vm_env_t * this) {
   error_id = DECIMAL__OK; 
   
   switch (bytecode_type) { 
-#define X(ident, value) case ident: goto label__bytecode__##ident; break; 
+    //if (this -> stdlog_d > 0) { dprintf(this -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Notice/Info: " #ident " ( " #value " ) " "%s" "\n", __func__, ""); }; 
+    //if (this -> stdlog_d > 0) { dprintf(this -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Notice/Info: " #ident " ( " STRINGIFY(value) " ) " "%s" "\n", __func__, ""); }; 
+#define X(ident, value) case ident: { \
+    if (this -> stdlog_d > 0) { dprintf(this -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Notice/Info: " #ident " (%s)" "\n", __func__, int_string__stack(ident)); }; \
+    goto label__bytecode__##ident; break; }; 
     DECIMAL_BYTECODE_TYPE__LIST
 #undef X 
   }; 
