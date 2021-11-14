@@ -113,7 +113,7 @@ Le programme ayant été développé sous [OpenBSD](https://fr.wikipedia.org/wik
 
 ## Considérations techniques
 
-L'idée était de pouvoir faire fonctionner la bibliothèque sur un processeur huit bits. Seize bits étant confortables, nous avons utilisés des entiers seize bits ici et là. Ainsi, la bibliothèque devrait fonctionner sans modification sur un processeur seize bits. Pour un processeur huit bits, il n'y a pas de problèmes majeurs, et la bibliothèque devrait pouvoir être amendée pour enlever toutes les références aux entiers seize bits. 
+L'idée était de pouvoir faire fonctionner la bibliothèque sur un processeur huit bits. Seize bits étant confortables, nous avons utilisés des entiers seize bits ici et là. Ainsi, la bibliothèque devrait fonctionner sans modification sur un processeur seize bits. Pour un processeur huit bits, il n'y a pas de problèmes majeurs, et la bibliothèque devrait pouvoir être amendée pour enlever toutes les références aux entiers seize bits (exercice toutefois pénible). 
 
 Nous avons fait simple: un nombre décimal est un tableau. Nous avons réservé un octet pour le statut, et le reste pour les chiffres. 
 
@@ -126,7 +126,7 @@ Une autre base intéressante est 210, car elle ajoute 7 et donc permet de repré
 
 La taille du tableau est au maximum de deux cent cinquante six octets (cf. l'hypothèse du processeur huit bits). Par défaut, cette taille est de deux cent cinquante six octets. Cette taille peut être plus petite. Mais elle ne peut pas être plus grande, du fait de notre exigence que la bibliothèque puisse fonctionner sur un processeur huit bits. 
 
-Nous sommes en virgule fixe, c'est-à-dire que le nombre de chiffres dédiés à la partie entière est fixé, et le nombre de chiffre dédié à la partie décimale est fixé. Il est possible de modifier le nombre de chiffre dédié à chaque partie (il faut recompiler). 
+Nous sommes en virgule fixe, c'est-à-dire que le nombre de chiffres dédiés à la partie entière est fixé, et le nombre de chiffres dédiés à la partie décimale est fixé. Il est possible de modifier le nombre de chiffres dédiés à chaque partie (il faut recompiler). 
 
 Implémenter l'*addition* ne pose aucun problème. 
 
@@ -175,7 +175,7 @@ Cela ayant été précisé:
  - Beaucoup de nettoyage et de «[réusinage](https://fr.wikipedia.org/wiki/R%C3%A9usinage_de_code)». 
  - Implémenter les directives («bye»/«quit»/«exit», etc.). 
  - Améliorer la [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop) afin d'avoir un historique et des raccourcis claviers utilisables. 
- - Implémenter une [GUI](https://fr.wikipedia.org/wiki/Interface_graphique) en [curses](https://fr.wikipedia.org/wiki/Curses). 
+ - Implémenter une [GUI](https://fr.wikipedia.org/wiki/Interface_graphique) en [curses](https://fr.wikipedia.org/wiki/Curses)/[PDcurses](https://fr.wikipedia.org/wiki/PDcurses). 
  - Implémenter une fonction pour calculer les chiffres de [Pi](https://fr.wikipedia.org/wiki/Pi). 
  - Implémenter les fonctions circulaires: *cos*, *sin*, etc. 
  - Implémenter *exp*, *ln*, *sqrt*, *carre*, *power*, etc. 
