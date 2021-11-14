@@ -115,11 +115,60 @@ RETURN_TYPE_T decimal__add_aux_identical_r(decimal_env_t * decimal_env, decimal_
 RETURN_TYPE_T decimal__add_r(decimal_env_t * decimal_env, decimal_t * d_r, const decimal_t * e_r) { 
   if (d_r == e_r) return decimal__add_aux_identical_r(decimal_env, d_r); 
   const uint8_t d_status = (*d_r)[DECIMAL_STATUS_INDEX]; 
+  const uint8_t e_status = (*e_r)[DECIMAL_STATUS_INDEX]; 
+  goto label__start; 
+  
+ label__exit: { 
+#ifdef RETURN_ERROR 
+    return DECIMAL__OK; 
+#else 
+    return d_r; 
+#endif 
+  };
+
+ error_label__missing_status_case_for_d: { 
+    const char * status_cstr = decimal_status__cstr(d_status); 
+    decimal_env -> error_id = DECIMAL__STATUS_NOT_LISTED_IN_SWITCH; 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Status of 'd' not listed in switch: %d [%s]", ((int)e_status), status_cstr); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+  }; 
+
+ error_label__missing_status_case_for_e: { 
+    const char * status_cstr = decimal_status__cstr(e_status); 
+    decimal_env -> error_id = DECIMAL__STATUS_NOT_LISTED_IN_SWITCH; 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Status of 'e' not listed in switch: %d [%s]", ((int)e_status), status_cstr); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+  }; 
+
+ error_label__malformed_number: { 
+    decimal_env -> error_id = DECIMAL__MALFORMED_NUMBER; 
+    //snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Malformed number: index = %d — char = %u", (int)index, ((unsigned int)(*d_r)[index])); 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Malformed number"); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+#ifdef RETURN_ERROR 
+    return decimal_env -> error_id; 
+#else 
+    return NULL; 
+#endif 
+  }; 
+
+  label__start: {}; 
+  // --- 
   if (d_status == DECIMAL_STATUS__INVALID    ) goto label__exit; 
   if (d_status == DECIMAL_STATUS__INFINI     ) goto label__exit; 
   if (d_status == DECIMAL_STATUS__ZERO       ) { bcopy(e_r, d_r, DECIMAL_SIZE); goto label__exit; }; 
   if (d_status == DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE) goto label__exit; 
-  const uint8_t e_status = (*e_r)[DECIMAL_STATUS_INDEX]; 
+  // --- 
   if (e_status == DECIMAL_STATUS__INVALID    ) { (*d_r)[0] = DECIMAL_STATUS__INVALID; goto label__exit; }; 
   if (e_status == DECIMAL_STATUS__INFINI     ) { (*d_r)[0] = DECIMAL_STATUS__INFINI ; goto label__exit; }; 
   if (e_status == DECIMAL_STATUS__ZERO       ) {                                      goto label__exit; }; 
@@ -218,93 +267,186 @@ RETURN_TYPE_T decimal__add_r(decimal_env_t * decimal_env, decimal_t * d_r, const
   }; 
   
   // Not same sign => substraction 
+
+ label__opposite_sign__d_greater_than_e: { 
+    assert(false); 
+  }; 
+
+ label__opposite_sign__e_greater_than_d: { 
+    assert(false); 
+  }; 
+
  label__opposite_sign: { 
+    DEBUG_STATEMENT(10000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "d = "); decimal__print_raw_ln_r(STDERR_FILENO, decimal_env, d_r);); 
     decimal_mantisse__EOF2ZERO_right_r(d_r); 
-    int index = DECIMAL_DIGITS_INDEX; 
-    index--; 
-    for (;;) { 
-      index++; 
-      if (index >= DECIMAL_DIGITS_INDEX_XLAST) goto error_label__malformed_number; 
-      if ((*e_r)[index] == DECIMAL_EOF_BYTE) continue; 
-      break; 
+    DEBUG_STATEMENT(10000,dputs_array(STDERR_FILENO, "[DEBUG][",  __FUNCTION__, ":", STRINGIFY(__LINE__), "]", " ", "e = "); decimal__print_raw_ln_r(STDERR_FILENO, decimal_env, e_r);); 
+    // Is 'e' empty? 
+    int index; 
+    { 
+      index = DECIMAL_DIGITS_INDEX; 
+      index--; 
+      for (;;) { 
+	index++; 
+	if (index >= DECIMAL_DIGITS_INDEX_XLAST) goto label__exit; 
+	const uint8_t e_v0 = (*e_r)[index]; 
+	if (e_v0 == DECIMAL_EOF_BYTE) continue; 
+	if (e_v0 == 0) continue; 
+	break; 
+      }; 
     }; 
+    const uint8_t e_first_significant_digit_index = index; 
+#if 0 
+    // Who is greater? 
+    { 
+      uint8_t d_is_greater_than_e = true; 
+      index = e_first_significant_digit_index; 
+      uint8_t retenue = 0; 
+      for (;;) { 
+	const uint8_t e_v0 = (*e_r)[index]; 
+	if ((e_v0 == DECIMAL_EOF_BYTE) && (retenue == 0)) break; 
+	const uint8_t e_v = ((e_v0 == DECIMAL_EOF_BYTE) ? 0 : e_v0) + retenue; 
+	const uint8_t d_v = (*d_r)[index]; 
+	if (d_v == DECIMAL_EOF_BYTE) { d_is_greater_than_e = false; break; }; 
+	retenue = (e_v > d_v) ? 1 : 0; 
+	index++; 
+	if (index >= DECIMAL_DIGITS_INDEX_XLAST) break; 
+	continue; 
+      }; 
+      if (d_is_greater_than_e) goto label__opposite_sign__d_greater_than_e; 
+      else goto label__opposite_sign__e_greater_than_d; 
+      assert(false); 
+    }; 
+#endif 
+    index = e_first_significant_digit_index; 
     uint8_t retenue = 0; 
     for (;;) { 
-      const uint8_t e_v = (*e_r)[index]; 
-      if ((e_v == DECIMAL_EOF_BYTE) && (retenue == 0)) break; 
-      const uint8_t u = ((e_v == DECIMAL_EOF_BYTE) ? 0 : e_v) + retenue; 
-      if ((*d_r)[index] != DECIMAL_EOF_BYTE) { 
-	if (u > (*d_r)[index]) { 
-	  (*d_r)[index] += (DECIMAL_BASE - u); 
+      const uint8_t e_v0 = (*e_r)[index]; 
+      if ((e_v0 == DECIMAL_EOF_BYTE) && (retenue == 0)) break; 
+      const uint8_t e_v = ((e_v0 == DECIMAL_EOF_BYTE) ? 0 : e_v0) + retenue; 
+      const uint8_t d_v = (*d_r)[index]; 
+      if (d_v != DECIMAL_EOF_BYTE) { 
+	if (e_v > d_v) { 
+	  (*d_r)[index] += (DECIMAL_BASE - e_v); 
 	  retenue = 1; 
 	} 
 	else { 
-	  (*d_r)[index] -= u; 
+	  (*d_r)[index] -= e_v; 
 	  retenue = 0; 
 	}; 
 	index++; 
 	if (index >= DECIMAL_DIGITS_INDEX_XLAST) break; 
 	continue; 
       }; 
-
-      //assert((*d_r)[index] == DECIMAL_EOF_BYTE);
+      
+      assert(d_v == DECIMAL_EOF_BYTE); 
       { 
 	// There's nothing left in 'd', but we still have digits to substract to 'd'. 
 	//  ==> e > d 
-	// ENG: If the algorithm goes on, then we will compute the nine-complement: 0008 - 0017 = 9991, instead of -9 
-	//      So we need to copy the left part of e, compute the 10-complement on the right part, and change the sign of d. 
-	//      In case of a non-null retenue (0007 - 0008 = 9999), the retenue should be dropped. 
-	//      In case of a null retenue (0008 - 1007 = 9001 = -0999), the left part of e should be decremented by one before being copied into d. 
+	// 
+	// In that case, the easiest thing to do would be to start over and compute 'e-d'. 
+	// 
+	// But we already have computed stuffs, is there anything we could do? 
+	// Actually, not really, as current resulting digits won't be the resulting digits — they have to be adjusted. 
+	// Basically, that adjustment is to compute 'e-d' knowning the digits of 'd-e'. 
+	// Actually, digits aren't the same, because, as 'd' was lower than 'd', what got actually computed was «[d+(1<<{high index of d +1})] - e» (actually, it's not 'e' but only the low digits of 'e', whose indexes are lower than high-index-of-d). 
+	// So, to get the wanted digits, those of 'e-d', we need to substract that intermediate result to «1<<{high index of d +1}». 
+	// Which means that we need to compute a second substraction (a little bit faster, as one operand is known and constant). 
 	const uint8_t base = index; 
-	// FIRST: Copy the adjusted left part of 'e' into 'd'. 
-	if (1 == retenue) { 
+	// ZERO: Before doing anything, we need to check that there are actually non-null left-over digits in 'e'. 
+	{ 
+	  uint8_t e_empty_huh = true; 
+	  index = base; 
 	  for (;;) { 
-	    if ((*e_r)[index] == DECIMAL_EOF_BYTE) break; 
-	    (*d_r)[index] = (*e_r)[index]; 
+	    const uint8_t e_v0 = (*e_r)[index]; 
+	    if (e_v0 == DECIMAL_EOF_BYTE) break; 
+	    if (e_v0 != 0) { e_empty_huh = false; break; }; 
+	    index++; 
+	    if (index >= DECIMAL_DIGITS_INDEX_XLAST) break; 
+	  }; 
+	  if (e_empty_huh) { 
+	    if (0 == retenue) break; // Actually, nothing left, so we're done. 
+	  }; 
+	}; 
+	const uint8_t e_zero_count = index - base; 
+	// FIRST: Now, we need to adjust the current result: 10…0 - d. 
+	// It's easy: it's a 9-complement, except the first non-null digit which is a 10-complement. 
+	// So: (i) let's skip the zeroes; (ii) do the job. 
+	{ 
+	  index = DECIMAL_DIGITS_INDEX; 
+	  index--; 
+	  for (;;) { 
+	    index++; 
+	    if (index >= base) break; 
+	    const uint8_t d_v0 = (*d_r)[index]; 
+	    if (d_v0 == DECIMAL_EOF_BYTE) continue; 
+	    if (d_v0 == 0) continue; 
+	    break; 
+	  }; 
+	}; 
+	const uint8_t d_first_significant_digit_index = index; 
+	if (d_first_significant_digit_index < base) { 
+	  // 'd' is not empty 
+	  index = d_first_significant_digit_index; 
+	  (*d_r)[index] = DECIMAL_BASE - (*d_r)[index]; 
+	  for (;;) { 
+	    index++; 
+	    if (index == base) break; 
+	    (*d_r)[index] = DECIMAL_BASE_MINUS1 - (*d_r)[index]; 
+	  }; 
+	}; 
+	// SECOND & THIRD: reversing retenue, substracting to 'e', copying upper digits of 'e' into 'd' 
+	// Well, as 'e' is read-only, we will change that order while keeping the semantic: 
+	// (i) copy into 'd'; (ii) decrementing these copied digits by one if retenue was null. 
+	if (1 == retenue) { 
+	  // No retenue has to be decremented to 'e'. So just copying 'e' into 'd'. 
+	  index = base; 
+	  for (;;) { 
+	    const uint8_t e_v0 = (*e_r)[index]; 
+	    if (e_v0 == DECIMAL_EOF_BYTE) break; 
+	    (*d_r)[index] = e_v0; 
 	    index++; 
 	    if (index >= DECIMAL_DIGITS_INDEX_XLAST) break; 
 	  }; 
 	} 
 	else { 
+	  assert(0 == retenue); 
+	  // As 'retenue' is null, the left part of 'e' should be decremented by one. 
 	  // As 'retenue' is null, the current digit of 'e' is not EOF. 
-	  // As 'retenue' is null, we want to decrement the left part of 'e' by one. 
-	  // If the current digit of 'e' is not zero, no problem; if it is, then we need to skip them. 
+	  // First, dealing with the trailing zeroes of 'e'. 
+	  index = base; 
+	  const uint8_t e_non_zero_index = base + e_zero_count; 
 	  for (;;) { 
-	    if ((*e_r)[index] != 0) break; 
+	    if (index >= e_non_zero_index) break; 
 	    (*d_r)[index] = DECIMAL_BASE - 1; 
 	    index++; 
-	    if (index >= DECIMAL_DIGITS_INDEX_XLAST) goto error_label__malformed_number; // The whole left part of 'e' is made of zeroes…? 
 	  }; 
-	  //if (index >= DECIMAL_DIGITS_INDEX_XLAST) goto error_label__malformed_number; // Impossible case, as it should have been detected beforehand.  
-	  if ((*e_r)[index] >= DECIMAL_EOF_BYTE) goto error_label__malformed_number; // The whole left part of 'e' is made of zeroes…? 
-	  (*d_r)[index] = (*e_r)[index] - 1; 
-	  index++; 
+	  { 
+	    assert(index < DECIMAL_DIGITS_INDEX_XLAST); 
+	    const uint8_t e_v0 = (*e_r)[index]; 
+	    assert(e_v0 < DECIMAL_EOF_BYTE); 
+	    (*d_r)[index] = e_v0 - 1; 
+	    index++; 
+	  }; 
 	  for (;;) { 
 	    if (index >= DECIMAL_DIGITS_INDEX_XLAST) break; 
-	    if ((*e_r)[index] == DECIMAL_EOF_BYTE) break; 
-	    (*d_r)[index] = (*e_r)[index]; 
+	    const uint8_t e_v0 = (*e_r)[index]; 
+	    if (e_v0 == DECIMAL_EOF_BYTE) break; 
+	    (*d_r)[index] = e_v0; 
 	    index++; 
 	  }; 
 	}; 
-	// SECOND: Compute the 10-complement on the right part of 'd'. 
-	{ 
-	  index = DECIMAL_DIGITS_INDEX; 
-	  for (;;) { 
-	    (*d_r)[index] = DECIMAL_BASE - (*d_r)[index]; 
-	    index++; 
-	    if (index == base) break; 
-	  }; 
-	}; 
-	// THIRD: Adjust the sign of 'd'. 
+	// FOURTH: Adjusting the sign of 'd'. 
 	(*d_r)[DECIMAL_STATUS_INDEX] = (d_status == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__NEG : DECIMAL_STATUS__POS; 
-	// FOURTH: Nothing left to do. 
+	// FIFTH: Nothing left to do. 
 	break; 
       }; 
     }; 
     
     // Normalization 
-    // In both cases ('d' > 'e' & 'd' < 'e'), the left part of 'd' is already normalized. 
     decimal_mantisse__ZERO2EOF_right_r(d_r); 
+    // In both cases ('d' > 'e' & 'd' < 'e'), the left part of 'd' was already normalized. 
+    // 2021-11-14: «180 - 128 = 052» => the left part of 'd' did not get normalized. 
+    decimal_mantisse__ZERO2EOF_left_r(d_r); 
     // Still, 'd' could be zero. 
     decimal_status__if_ZERO_then_set_status_r(d_r); 
     
@@ -312,50 +454,5 @@ RETURN_TYPE_T decimal__add_r(decimal_env_t * decimal_env, decimal_t * d_r, const
   }; 
   
   assert(false); 
-  
- label__exit: { 
-#ifdef RETURN_ERROR 
-    return DECIMAL__OK; 
-#else 
-    return d_r; 
-#endif 
-  };
-
- error_label__missing_status_case_for_d: { 
-    const char * status_cstr = decimal_status__cstr(d_status); 
-    decimal_env -> error_id = DECIMAL__STATUS_NOT_LISTED_IN_SWITCH; 
-    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Status of 'd' not listed in switch: %d [%s]", ((int)e_status), status_cstr); 
-    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
-#ifdef RETURN_ERROR 
-    return decimal_env -> error_id; 
-#else 
-    return NULL; 
-#endif 
-  }; 
-
- error_label__missing_status_case_for_e: { 
-    const char * status_cstr = decimal_status__cstr(e_status); 
-    decimal_env -> error_id = DECIMAL__STATUS_NOT_LISTED_IN_SWITCH; 
-    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Status of 'e' not listed in switch: %d [%s]", ((int)e_status), status_cstr); 
-    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
-#ifdef RETURN_ERROR 
-    return decimal_env -> error_id; 
-#else 
-    return NULL; 
-#endif 
-  }; 
-
- error_label__malformed_number: { 
-    decimal_env -> error_id = DECIMAL__MALFORMED_NUMBER; 
-    //snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Malformed number: index = %d — char = %u", (int)index, ((unsigned int)(*d_r)[index])); 
-    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Malformed number"); 
-    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
-#ifdef RETURN_ERROR 
-    return decimal_env -> error_id; 
-#else 
-    return NULL; 
-#endif 
-  }; 
-
 }; 
 
