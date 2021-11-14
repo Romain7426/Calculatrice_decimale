@@ -94,8 +94,8 @@ Nous aurions bien laissé ce programme dans le [domaine public](https://fr.wikip
 La procédure: 
 
 <pre>
-$ ./tools-compile.sh
-$ ./configure.sh
+$ sh ./tools-compile.sh
+$ sh ./configure.sh
 $ make 
 $ make install 
 </pre>
