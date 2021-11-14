@@ -130,11 +130,11 @@ Nous sommes en virgule fixe, c'est-à-dire que le nombre de chiffres dédiés à
 
 Implémenter l'addition ne pose aucun problème. 
 
-Implémenter la soustraction contient une surprise dans le cas où le second membre est plus grand (la soustraction naturelle est où la première opérande est plus grande que la seconde; l'autre sens est en fait implicitement une équivalent à «d - e = -(e - d)»; nous ne nous en rendons pas compte, faisant toutes les étapes intuitivement et automatiquement; si on pose «28 - 80», on obtient une réprésentation complémentaire, que il faut alors re-complémenter pour obtenir la représentation naturelle (ce qui nécessaire dans le cas des entiers longs!) — plus précisément, implicitement, on réalise l'opération suivante: «28 - 80 = [(100+28) - 80] - 100 = -{ 100 - [(100+28) - 80] } »). 
+Implémenter la soustraction contient une surprise dans le cas où le second membre est plus grand (la soustraction naturelle est le cas où la première opérande est plus grande que la seconde; l'autre sens est en fait implicitement une équivalence au premier cas: «d - e = -(e - d)»; nous ne nous en rendons pas compte, faisant toutes les étapes intuitivement et automatiquement; si on pose «28 - 80», on obtient une réprésentation complémentaire, que il faut alors re-complémenter pour obtenir la représentation naturelle (ce qui nécessaire dans le cas des entiers longs!) — plus précisément, implicitement, on réalise l'opération suivante: «28 - 80 = [(100+28) - 80] - 100 = -{ 100 - [(100+28) - 80] } »). 
 
 Implémenter la multiplication est un peu plus complexe. (Notons que, asymptotiquement, la multiplication est une opération en O(nln(n)), correspondant au fait que la multiplication est une addition dans l'espace des fréquences — la fonction de passage de l'espace temporel à l'espace des fréquences étant en O(nln(n)) — Ce qui est porteur de sens si on considère le point de vue de l'information.) 
 
-Le problème commence avec l'implémentation de la division. La division est une opération relevant de la virgule flottante. En internet, il faut donc changer de représentation. 
+Le problème commence avec l'implémentation de la division. La division est une opération relevant de la virgule flottante. En interne, il faut donc changer de représentation. 
 Afin de nous assurer de l'exactitude de l'implémentation de la division, nous avons fait tourner 64k x 64k tests, qui se sont tous révélés positifs. A priori, l'algorithme fonctionne.  
 
 
@@ -167,12 +167,13 @@ Ce n'est pas extraordinaire, mais cela pourrait être pire. (Le but premier ici 
 Nous travaillons aléatoirement sur les différents projets en cours. Il est tout à fait probable que ce projet n'avance pas au cours des prochaines années, voire décennies. 
 
 Cela ayant été précisé: 
- - Pouvoir sélectionner le compilateur [C](https://fr.wikipedia.org/wiki/C_(langage)) en première option (avant la compilation des outils et la configuration, etc.). 
- - Beaucoup de nettoyage et de «[réusinage](https://fr.wikipedia.org/wiki/R%C3%A9usinage_de_code)». 
  - Il faut écrire une fonction de conversion depuis une chaîne de caractères. 
    (Pour l'instant, on convertit en [*float*](https://en.wikipedia.org/wiki/Single-precision_floating-point_format), puis dans le format interne. Ceci entraîne justement les arrondis qui nous voulions éviter, et en plus fait dépendre de la librairie [*math*](https://fr.wikipedia.org/wiki/Math.h). Bref. ☹)
+ - Pouvoir sélectionner le compilateur [C](https://fr.wikipedia.org/wiki/C_(langage)) en première option (avant la compilation des outils et la configuration, etc.). 
+ - Beaucoup de nettoyage et de «[réusinage](https://fr.wikipedia.org/wiki/R%C3%A9usinage_de_code)». 
  - Implémenter les directives («bye»/«quit»/«exit», etc.). 
  - Améliorer la [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop) afin d'avoir un historique et des raccourcis claviers utilisables. 
+ - Implémenter une [GUI](https://fr.wikipedia.org/wiki/Interface_graphique) en [Curses](https://fr.wikipedia.org/wiki/Curses). 
  - Implémenter une fonction pour calculer les chiffres de [Pi](https://fr.wikipedia.org/wiki/Pi). 
  - Implémenter les fonctions circulaires: *cos*, *sin*, etc. 
  - Implémenter *exp*, *ln*, *sqrt*, *carre*, *power*, etc. 
@@ -185,7 +186,7 @@ Cela ayant été précisé:
  - Implémenter une [FFT](https://fr.wikipedia.org/wiki/Transformation_de_Fourier_rapide). 
  - Une [GUI](https://fr.wikipedia.org/wiki/Interface_graphique) simple en [FLTK](https://fr.wikipedia.org/wiki/FLTK). 
  - Une [GUI](https://fr.wikipedia.org/wiki/Interface_graphique) comme celle de [DrRacket](https://fr.wikipedia.org/wiki/Racket_(langage)). 
- - Une [GUI](https://fr.wikipedia.org/wiki/Interface_graphique) de type tableur, comme Excel (parce que c'est très comfortable! ☺). 
+ - Une [GUI](https://fr.wikipedia.org/wiki/Interface_graphique) de type tableur, comme Excel (parce que c'est très confortable! ☺). 
  - … 
  - Bref, avoir un truc utilisable! 
 
