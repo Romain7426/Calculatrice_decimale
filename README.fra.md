@@ -171,7 +171,6 @@ Nous travaillons aléatoirement sur les différents projets en cours. Il est tou
 Cela ayant été précisé: 
  - Il faut écrire une fonction de conversion depuis une chaîne de caractères. 
    (Pour l'instant, on convertit en [*float*](https://en.wikipedia.org/wiki/Single-precision_floating-point_format), puis dans le format interne. Ceci entraîne justement les arrondis qui nous voulions éviter, et en plus fait dépendre de la librairie [*math*](https://fr.wikipedia.org/wiki/Math.h). Bref. ☹)
- - Pouvoir sélectionner le compilateur [C](https://fr.wikipedia.org/wiki/C_(langage)) en première option (avant la compilation des outils et la configuration, etc.). 
  - Beaucoup de nettoyage et de «[réusinage](https://fr.wikipedia.org/wiki/R%C3%A9usinage_de_code)». 
  - Implémenter les directives («bye»/«quit»/«exit», etc.). 
  - Améliorer la [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop) afin d'avoir un historique et des raccourcis claviers utilisables. 
