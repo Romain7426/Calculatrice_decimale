@@ -94,8 +94,8 @@ Nous aurions bien laissé ce programme dans le [domaine public](https://fr.wikip
 La procédure: 
 
 <pre>
-$ sh ./tools-compile.sh
-$ sh ./configure.sh
+$ echo "clang" > ./CC 
+$ sh ./configure.sh 
 $ make 
 $ make install 
 </pre>
