@@ -152,7 +152,7 @@ void print_compiler(void) {
 #endif
 
 #if defined(__TINYC__)
- WRITE_MACRO_VALUE(__TINCY__); 
+ WRITE_MACRO_VALUE(__TINYC__); 
 #endif
 
 

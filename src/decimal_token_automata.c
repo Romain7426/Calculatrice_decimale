@@ -744,16 +744,20 @@ int8_t decimal_token_automata__read_symbol(const decimal_token_automata_t * auto
   default: assert(false); break; 
   case DECIMAL_TOKEN_AUTOMATA__TYPE__NULL: return -1; break; 
   case DECIMAL_TOKEN_AUTOMATA__TYPE__STRING: { 
-    int8_t (* p)(const int cstr_to_be_matched_len, const char * cstr_to_be_matched, const int8_t current_state, const int16_t char_given) = this -> automata; 
+    int8_t (* p)(const int cstr_to_be_matched_len, const char * cstr_to_be_matched, const int8_t current_state, const int16_t char_given);
+    p = (const void *)this -> automata; 
     next_state = p(this -> value1, this -> value_ptr1, current_state, char_to_be_read); 
   }; break; 
   case DECIMAL_TOKEN_AUTOMATA__TYPE__FUNCTION: { 
-    int8_t (* p)(const int8_t current_state, const char char_read) = this -> automata; 
+    int8_t (* p)(const int8_t current_state, const char char_read); // = this -> automata; 
+    p = (const void *)this -> automata; 
     next_state = p(current_state, char_to_be_read); 
   }; break; 
   case DECIMAL_TOKEN_AUTOMATA__TYPE__MASTER: { 
-    int8_t (* p)(const int master__nb, const int master__len[], const char * master__array[], const int8_t current_state0, const int16_t char_given) = this -> automata; 
-    const decimal_token_env_t * token_env = (const void *) this -> value_ptr1; 
+    int8_t (* p)(const int master__nb, const int master__len[], const char * master__array[], const int8_t current_state0, const int16_t char_given); // = (void *)this -> automata; 
+    p = (const void *)this -> automata; 
+    const decimal_token_env_t * token_env; // = (const void *) this -> value_ptr1; 
+    token_env = (const void *) this -> value_ptr1; 
     if (NULL == token_env) { return -1; }; 
     const int      master__nb   = decimal_token__master_count(token_env); 
     const int  *   master__len  = decimal_token__master_len  (token_env); 
@@ -766,7 +770,8 @@ int8_t decimal_token_automata__read_symbol(const decimal_token_automata_t * auto
 #endif 
   }; break; 
   case DECIMAL_TOKEN_AUTOMATA__TYPE__SYNTAX_KEYWORD: { 
-    int8_t (* p)(const int syntax_keyword__nb, const int syntax_keyword__len[], const char * syntax_keyword__array[], const int8_t current_state0, const int16_t char_given) = this -> automata; 
+    int8_t (* p)(const int syntax_keyword__nb, const int syntax_keyword__len[], const char * syntax_keyword__array[], const int8_t current_state0, const int16_t char_given); // = this -> automata; 
+    p = (const void *) this -> automata; 
     const decimal_token_env_t * token_env = (const void *) this -> value_ptr1; 
     if (NULL == token_env) { return -1; }; 
     const int      syntax_keyword__nb   = decimal_token__syntax_keyword_count(token_env); 

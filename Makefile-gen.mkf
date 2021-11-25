@@ -43,7 +43,7 @@ ifdef CC
 CC           := $(if $(strip $(filter $(CC),cc)),$(shell which cc),$(CC))
 else
 #$(info CC is undefined)
-CC           := $(shell which cc)
+CC           := $(if $(strip $(wildcard CC)),$(shell cat CC),$(shell which cc))
 endif
 CC_NAME      := $(shell mkdir -p tmp && $(CC) ./tools/src/compiler-detect.c -o tmp/compiler-detect.exe && ./tmp/compiler-detect.exe) 
 UNAME        := $(shell uname)
@@ -129,14 +129,16 @@ CC_FLAGS_W_NO := -Wno-cast-align -Wno-system-headers  -Wno-undef -Wno-redundant-
 CLANG_FLAGS := -gfull -W -Wextra -Wnewline-eof -Wno-unsequenced 
 #GCC: -gstabs+3: does not work: «SHF_MERGE section size must be a multiple of sh_entsize» 
 #pragma GCC diagnostics disable "-Wtype-limits" 
-GCC_FLAGS := -g3  -fno-early-inlining -fno-gcse-lm -fno-move-loop-invariants -fno-peephole  -fno-sched-interblock -fno-sched-spec -fno-split-ivs-in-unroller -fno-toplevel-reorder -fno-tree-loop-optimize -fno-tree-vect-loop-version -fno-tree-loop-im -fno-tree-loop-ivcanon  -fno-stack-check -Wno-error #-Wno-extra -Wno-sign-compare #-Werror=no-type-limits #-Wno-absolute-value #-Wno-type-limits #-Wframe-larger-than=76368 #-Wframe-larger-than=1844674407370955161 #-Wframe-larger-than=18446744073709551615 #-Wframe-larger-than=18446744073709551615UL #-Wframe-larger-than='18446744073709551615UL' #-Wframe-larger-than='SIZE_MAX' #-Wno-frame-larger-than # -Wno-stack-usage # -Wstack-usage=1844674407370955161
+GCC_FLAGS := -g3  -fno-early-inlining -fno-gcse-lm -fno-move-loop-invariants -fno-peephole  -fno-sched-interblock -fno-sched-spec -fno-split-ivs-in-unroller -fno-toplevel-reorder -fno-tree-loop-optimize -fno-tree-vect-loop-version -fno-tree-loop-im -fno-tree-loop-ivcanon  -fno-stack-check -Wno-error -Wno-enum-compare #-Wno-extra -Wno-sign-compare #-Werror=no-type-limits #-Wno-absolute-value #-Wno-type-limits #-Wframe-larger-than=76368 #-Wframe-larger-than=1844674407370955161 #-Wframe-larger-than=18446744073709551615 #-Wframe-larger-than=18446744073709551615UL #-Wframe-larger-than='18446744073709551615UL' #-Wframe-larger-than='SIZE_MAX' #-Wno-frame-larger-than # -Wno-stack-usage # -Wstack-usage=1844674407370955161
 #PCC: -g: does not work: «SHF_MERGE section size must be a multiple of sh_entsize» 
 PCC_FLAGS := -fpic #-g #-fpic 
+TCC_FLAGS := -g -bt100 #-b #-fpic #-g #-fpic 
 
 CC_FLAGS_SPEC := 
 CC_FLAGS_SPEC := $(CC_FLAGS_SPEC) $(if $(strip $(filter $(CC_NAME),clang)),$(CLANG_FLAGS),) 
 CC_FLAGS_SPEC := $(CC_FLAGS_SPEC) $(if $(strip $(filter $(CC_NAME),gcc)),$(GCC_FLAGS),) 
 CC_FLAGS_SPEC := $(CC_FLAGS_SPEC) $(if $(strip $(filter $(CC_NAME),pcc)),$(PCC_FLAGS),) 
+CC_FLAGS_SPEC := $(CC_FLAGS_SPEC) $(if $(strip $(filter $(CC_NAME),tcc)),$(TCC_FLAGS),) 
 
 
 CC_FLAGS := $(CC_FLAGS) $(CC_FLAGS_F) $(CC_FLAGS_W) $(CC_FLAGS_SPEC) $(CC_FLAGS_F_NO) $(CC_FLAGS_W_NO) 
@@ -165,7 +167,12 @@ BISON_FLAGS :=
 # For some floating operations ('floorf') 
 MATH_LIB__LIBS_FLAGS := -lm 
 
-LIBS := $(MATH_LIB__LIBS_FLAGS) 
+TCC_LIBS := #-ltcc 
+
+LIBS_SPEC := 
+LIBS_SPEC := $(LIBS_SPEC) $(if $(strip $(filter $(CC_NAME),tcc)),$(TCC_LIBS),) 
+
+LIBS := $(MATH_LIB__LIBS_FLAGS) $(LIBS_SPEC) 
 
 PROG    := $(PROJECT_NAME)
 SRC_C   := $(patsubst src/%.c,%,$(wildcard src/*.c))
@@ -280,7 +287,8 @@ build.sh:
 Makefile: 
 	echo "" > $@
 #	echo "default: Makefile build run $(BIN)" >> $@
-	echo "default: Makefile build $(LIB) $(BIN) run " >> $@
+#	echo "default: Makefile build $(LIB) $(BIN) run " >> $@
+	echo "default: Makefile build build_ci $(LIB) $(BIN) run " >> $@
 	echo "" >> $@
 	echo "" >> $@
 	echo "" >> $@
@@ -398,6 +406,30 @@ Makefile:
 	  echo "" >> $@; \
 	)
 	echo "" >> $@
+	$(foreach file_h,$(patsubst src/%,%,$(wildcard src/*.h)), \
+	  echo "build/$(file_h): src/$(file_h) " >> $@; \
+	  echo "	ln src/$(file_h) build/$(file_h) " >> $@; \
+	  echo "" >> $@; \
+	)
+	echo "" >> $@
+	echo "" >> $@
+	echo "" >> $@
+	echo "build_ci: build $(patsubst src/%,build/%,$(wildcard src/*.ci)) " >> $@; 
+	echo "" >> $@
+	$(foreach file_ci,$(patsubst src/%,%,$(wildcard src/*.ci)), \
+	  echo "build/$(file_ci): src/$(file_ci) " >> $@; \
+	  echo "	ln src/$(file_ci) build/$(file_ci) " >> $@; \
+	  echo "" >> $@; \
+	)
+	echo "" >> $@
+	echo "" >> $@
+	echo "" >> $@
+	$(foreach file_c,$(patsubst src/%,%,$(wildcard src/*.c)), \
+	  echo "build/$(file_c): src/$(file_c) " >> $@; \
+	  echo "	ln src/$(file_c) build/$(file_c) " >> $@; \
+	  echo "" >> $@; \
+	)
+	echo "" >> $@
 	echo "" >> $@
 	echo "" >> $@
 #	$(foreach file_ci,$(patsubst src/%,%,$(wildcard src/*.ci)), \
@@ -414,8 +446,8 @@ Makefile:
 	  $(foreach file_o,$(patsubst %.c,%.o,$(file_c)), \
 	  $(foreach file_h,$(patsubst %.c,%.h,$(file_c)), \
 	  $(foreach file_aux,$(patsubst %.c,%.aux,$(file_c)), \
-	      echo "build/$(file_o): src/$(file_c) $(patsubst %,src/%,$(shell cat src/$(file_c) | ./tools/bin/c-file-local-include-list)) " >> $@; \
-	      echo "	$(CC) $(CFLAGS) -c src/$(file_c) -o build/$(file_o)  2>&1" >> $@; \
+	      echo "build/$(file_o): build/$(file_c) $(patsubst src/%,build/%,$(wildcard src/lib*.ci)) $(patsubst %,build/%,$(shell cat src/$(file_c) | ./tools/bin/c-file-local-include-list)) " >> $@; \
+	      echo "	$(CC) $(CFLAGS) -c build/$(file_c) -o build/$(file_o)  2>&1" >> $@; \
 	      echo "" >> $@; \
 	    ) \
 	    ) \

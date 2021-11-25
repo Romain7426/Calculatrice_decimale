@@ -113,7 +113,7 @@ RETURN_TYPE_T decimal__add_aux_identical_r(decimal_env_t * decimal_env, decimal_
 }; 
 
 RETURN_TYPE_T decimal__add_r(decimal_env_t * decimal_env, decimal_t * d_r, const decimal_t * e_r) { 
-  if (d_r == e_r) return decimal__add_aux_identical_r(decimal_env, d_r); 
+  if ((const void *)d_r == (const void *)e_r) return decimal__add_aux_identical_r(decimal_env, d_r); 
   const uint8_t d_status = (*d_r)[DECIMAL_STATUS_INDEX]; 
   const uint8_t e_status = (*e_r)[DECIMAL_STATUS_INDEX]; 
   goto label__start; 

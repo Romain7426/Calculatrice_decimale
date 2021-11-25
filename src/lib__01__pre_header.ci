@@ -196,15 +196,17 @@ enum { O_NONBLOCK = 0x0004 };
 enum { O_APPEND   = 0x0008 }; 
 enum { O_TRUNC    = 0x0400 }; 
 
+#ifndef __TINYC__ 
+
 #define	O_SHLOCK	0x0010		/* open with shared file lock */
 #define	O_EXLOCK	0x0020		/* open with exclusive file lock */
 #define	O_ASYNC		0x0040		/* signal pgrp when data ready */
 #define	O_FSYNC		O_SYNC		/* source compatibility: do not use */
-#define O_NOFOLLOW  0x0100      /* don't follow symlinks */
+#define O_NOFOLLOW  	0x0100		/* don't follow symlinks */
 #define	O_CREAT		0x0200		/* create if nonexistant */
 #define	O_EXCL		0x0800		/* error if already exists */
 
-#define AT_FDCWD	-2
+#define AT_FDCWD		-2
 #define AT_EACCESS		0x0010	/* Use effective ids in access check */
 #define AT_SYMLINK_NOFOLLOW	0x0020	/* Act on the symlink itself not the target */
 #define AT_SYMLINK_FOLLOW	0x0040	/* Act on target of symlink */
@@ -280,6 +282,8 @@ enum { O_TRUNC    = 0x0400 };
 #define	LOCK_EX		0x02		/* exclusive file lock */
 #define	LOCK_NB		0x04		/* don't block when locking */
 #define	LOCK_UN		0x08		/* unlock file */
+
+#endif /* __TINYC__ */ 
 
 enum { SEEK_SET = 0 }; 
 enum { SEEK_CUR = 1 }; 

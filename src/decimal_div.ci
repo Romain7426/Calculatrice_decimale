@@ -798,7 +798,7 @@ static RETURN_TYPE_T decimal__div_r__aux(decimal_env_t * decimal_env, decimal_t 
 
 
 RETURN_TYPE_T decimal__div_r(decimal_env_t * decimal_env, decimal_t * d_r, const decimal_t * e_r) { 
-  if (d_r == e_r) { 
+  if ((const void *)d_r == (const void *)e_r) { 
     decimal_mantisse__set_eof_r(d_r); 
     (*d_r)[DECIMAL_STATUS_INDEX] = DECIMAL_STATUS__POS; 
     (*d_r)[DECIMAL_FIXED_POINT_INDEX] = 1; 

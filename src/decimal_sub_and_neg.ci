@@ -41,7 +41,7 @@ RETURN_TYPE_T decimal__neg_r(decimal_env_t * decimal_env, decimal_t * d_r) {
 
 
 RETURN_TYPE_T decimal__sub_r(decimal_env_t * decimal_env, decimal_t * d_r, const decimal_t * e_r) { 
-  if (d_r == e_r) { 
+  if ((const void *)d_r == (const void *)e_r) { 
     (*d_r)[DECIMAL_STATUS_INDEX] = DECIMAL_STATUS__ZERO; 
 #ifdef RETURN_ERROR 
     return DECIMAL__OK; 
