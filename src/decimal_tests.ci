@@ -126,14 +126,16 @@ static void quotient__print_r__old001(const int stduser_d, const decimal_t * d_r
   int d_index = DECIMAL_SIZE - 1; 
   for (int i = 0; i < a_len; i++) { 
     //dputn(stduser_d, (*d_r)[d_index]); 
-    dputs(stduser_d, base100_digit_to_cstr[(*d_r)[d_index]]); 
+    //dputs(stduser_d, base100_digit_to_cstr[(*d_r)[d_index]]); 
+    dputs(stduser_d, digit_to_cstr__leading_zeroes__two[(*d_r)[d_index]]); 
     d_index--;
   }; 
   dputc(stduser_d, '.'); 
   for (;;) { 
     if (0 == d_index) break; 
     //dputn(stduser_d, (*d_r)[d_index]); 
-    dputs(stduser_d, base100_digit_to_cstr[(*d_r)[d_index]]); 
+    //dputs(stduser_d, base100_digit_to_cstr[(*d_r)[d_index]]); 
+     dputs(stduser_d, digit_to_cstr__leading_zeroes__two[(*d_r)[d_index]]); 
     d_index--;
   }; 
 }; 
@@ -149,18 +151,21 @@ static void quotient__print_r__old002(const int stduser_d, const decimal_t * d_r
   if (d_N >= 0) { 
     int d_index = DECIMAL_SIZE - 1; 
     for (int i = 0; i <= d_N; i++) { 
-      dputs(stduser_d, base100_digit_to_cstr[(*d_r)[d_index]]); 
+      //dputs(stduser_d, base100_digit_to_cstr[(*d_r)[d_index]]); 
+      dputs(stduser_d, digit_to_cstr__leading_zeroes__two[(*d_r)[d_index]]); 
       d_index--;
     }; 
     dputc(stduser_d, '.'); 
     for (;;) { 
       if (0 == d_index) break; 
-      dputs(stduser_d, base100_digit_to_cstr[(*d_r)[d_index]]); 
+      //dputs(stduser_d, base100_digit_to_cstr[(*d_r)[d_index]]); 
+      dputs(stduser_d, digit_to_cstr__leading_zeroes__two[(*d_r)[d_index]]); 
       d_index--;
     }; 
     return; 
   }; 
   
+#define base100_digit_to_cstr digit_to_cstr__leading_zeroes__two
   if (d_N < 0) { 
     dputs(stduser_d, base100_digit_to_cstr[0]); 
     dputc(stduser_d, '.'); 

@@ -385,7 +385,8 @@ static RETURN_TYPE_T decimal__div_r__aux(decimal_env_t * decimal_env, decimal_t 
       (*c_r)[0] = *d; 
       if (NULL != c_N_ref) { *c_N_ref = c_N; }; 
       bzero(&(*c_r)[1], DECIMAL_SIZE - 2); 
-      (*c_r)[255] = 1; 
+      //(*c_r)[255] = 1; 
+      (*c_r)[DECIMAL_SIZE_MINUS1] = 1; 
       //quotient__print_ln_r(STDERR_FILENO, (decimal_t *)(*c_r), c_N); 
     }; 
 

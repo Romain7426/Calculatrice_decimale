@@ -74,6 +74,14 @@ extern void             decimal_example__print(const int stduser_d);
   X(DECIMAL__MAKE_B_BUFFER_SIZE_TOO_SMALL, ) \
   X(DECIMAL__MAKE_B_BUFFER_IS_NULL, ) \
   X(DECIMAL__STATUS_NOT_LISTED_IN_SWITCH, ) \
+  X(DECIMAL__NULL_CSTR, ) \
+  X(DECIMAL__EMPTY_CSTR, ) \
+  X(DECIMAL__ONLY_WHITE_SPACES_CSTR, ) \
+  X(DECIMAL__ONLY_NEG_SIGN_CSTR, ) \
+  X(DECIMAL__UNEXPECTED_DIGIT, ) \
+  X(DECIMAL__DIGITS_LEN_IS_NULL, ) \
+  X(DECIMAL__FIRST_DIGIT_IS_NULL, ) \
+  X(DECIMAL__NULL_BASE_CSTR, ) \
   X(DECIMAL__NULL_NEW_D_STATUS_R, ) \
   X(DECIMAL__MALFORMED_NUMBER, ) \
   X(DECIMAL__NUMBER_WAS_EMPTY, ) \
@@ -210,7 +218,7 @@ DECIMAL_ERROR__LIST
 #define DECIMAL_ENV_CONST__LIST				\
   X(DECIMAL_ENV__ERROR_BUFFER_SIZE, = (1 << 11))	\
   X(DECIMAL_ENV__STRING_STACK_SIZE, = (1 << 12))	\
-  X(DECIMAL_ENV__SIZEOF, = (6176))		
+  X(DECIMAL_ENV__SIZEOF, = (6184))		
 
 #define X(ident, value) ident value, 
 enum { 
@@ -250,6 +258,9 @@ extern void            decimal_env__delete  (decimal_env_t * this);
 extern void            decimal_env__delete_r(decimal_env_t * this); 
 extern void            decimal_env__bzero   (decimal_env_t * this); 
 extern const char *    decimal_env__strcopy (decimal_env_t * this, const char * cstr); 
+
+extern void decimal_env__printing_int_and_float_separator_char__set(      decimal_env_t * this, const char separator); 
+extern char decimal_env__printing_int_and_float_separator_char__get(const decimal_env_t * this); 
 
 
 
@@ -316,10 +327,17 @@ extern       int     decimal_status__value_is_a_status_huh(const uint8_t status)
 
 //* DECIMAL_T */
 
+#if 0 
 enum {  DECIMAL_SIZE             =                256 }; // TODO XXX FIXME: On a 8-bit compiler, that gonna fail. 
 enum {  DECIMAL_FIXED_POINT_SIZE =                200 }; 
-#define DECIMAL_BASE_MACRO                        100 
+#else 
+enum {  DECIMAL_SIZE             =                 32 }; // TODO XXX FIXME: On a 8-bit compiler, that gonna fail. 
+enum {  DECIMAL_FIXED_POINT_SIZE =                 12 }; 
+#endif 
+#define DECIMAL_BASE_MACRO                         20 
 enum {  DECIMAL_BASE             = DECIMAL_BASE_MACRO }; 
+enum {  DECIMAL_BASE_MAX         =      UINT8_MAX - 1 }; 
+
 
 #define DECIMAL_BASE_GENERIC__GET_QUOTIENT(__dividend__)  ((__dividend__) / DECIMAL_BASE) 
 #define DECIMAL_BASE_GENERIC__GET_REMAINDER(__dividend__) ((__dividend__) % DECIMAL_BASE) 
@@ -349,6 +367,7 @@ static void decimal_struct__check_and_assert(void) {
   assert(DECIMAL_SIZE <= UINT8_MAX + 1); 
   assert(DECIMAL_FIXED_POINT_SIZE < DECIMAL_SIZE); // Meaning that «DECIMAL_INT_INDEX» is «> 0». 
   assert(DECIMAL_BASE < UINT8_MAX); 
+  assert(DECIMAL_BASE_MAX < UINT8_MAX); 
   
   assert(DECIMAL_SIZE > 0); 
   assert(DECIMAL_FIXED_POINT_SIZE > 0); 
@@ -427,6 +446,7 @@ extern RETURN_TYPE_T decimal__cast_from_intmax_r (      decimal_env_t * this, de
 extern RETURN_TYPE_T decimal__cast_from_float_r      (      decimal_env_t * this, decimal_t * d_r, const float       f_given); 
 extern RETURN_TYPE_T decimal__cast_from_double_r     (      decimal_env_t * this, decimal_t * d_r, const double      f_given); 
 extern RETURN_TYPE_T decimal__cast_from_long_double_r(      decimal_env_t * this, decimal_t * d_r, const long double f_given); 
+extern RETURN_TYPE_T decimal__cast_from_string_int_r (      decimal_env_t * this, decimal_t * d_r, const char * int_cstr, const uint8_t int_cstr_base); 
 
 extern RETURN_TYPE_T decimal__shift_right_by_r(decimal_env_t * this, decimal_t * d_r, const int16_t int16_shift_n); 
 extern RETURN_TYPE_T decimal__shift_left_by_r (decimal_env_t * this, decimal_t * d_r, const int16_t int16_shift_n); 
@@ -444,6 +464,9 @@ extern int         decimal__print_r       (const int stduser_d, decimal_env_t * 
 extern int         decimal__print_ln_r    (const int stduser_d, decimal_env_t * this, const decimal_t * d_r); 
 extern int         decimal__print_raw_r   (const int stduser_d, decimal_env_t * this, const decimal_t * d_r); 
 extern int         decimal__print_raw_ln_r(const int stduser_d, decimal_env_t * this, const decimal_t * d_r); 
+
+extern int decimal__print__int_and_float_separator_char__r(const int stduser_d, decimal_env_t * decimal_env, const decimal_t * d_r, const char separator); 
+extern int decimal__print__base__int_and_float_separator_char__r(const int stduser_d, decimal_env_t * decimal_env, const decimal_t * d_r, const uint8_t printing_base, const char separator); 
 
 extern int_decimal_error_t test_decimal__unit(const int stduser_d, decimal_env_t * decimal_env, const uint16_t a, const uint16_t b); 
 extern int_decimal_error_t test_decimal_division__uint16_diag(const int stduser_d, decimal_env_t * decimal_env); 

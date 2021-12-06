@@ -304,8 +304,12 @@ int_decimal_error_t decimal_vm__step(decimal_vm_env_t * this) {
     BYTECODE_READ_UINT16(str_id); 
     CONST_STRING_GET_CSTR(cstr,str_id); 
     STACK_PUSH(new_d_r); 
+#if 1 
+    decimal__cast_from_string_int_r(this -> decimal_env, new_d_r, cstr, 10); 
+#else 
     const int entier = atoi(cstr); 
     decimal__cast_from_int_r(this -> decimal_env, new_d_r, entier); 
+#endif 
     goto label__exit; 
   }; 
   

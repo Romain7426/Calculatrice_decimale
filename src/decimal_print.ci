@@ -1,49 +1,6 @@
-int decimal__print_raw_r(const int stduser_d, decimal_env_t * decimal_env, const decimal_t * d_r) { 
-  int printed_nb = 0; 
-  printed_nb += dputn(stduser_d, (*d_r)[DECIMAL_STATUS_INDEX]); 
-  printed_nb += write_string(stduser_d, "["); 
-  printed_nb += write_string(stduser_d, decimal_status__cstr((*d_r)[DECIMAL_STATUS_INDEX])); 
-  printed_nb += write_string(stduser_d, "] { "); 
-  for (int i = DECIMAL_DIGITS_INDEX; i < DECIMAL_SIZE; i++) { 
-    printed_nb += dputn(stduser_d, (*d_r)[i]); 
-    printed_nb += write_string(stduser_d, ", "); 
-  }; 
-  printed_nb += write_string(stduser_d, " } "); 
-  return printed_nb; 
-}; 
 
-int decimal__print_raw_ln_r(const int stduser_d, decimal_env_t * decimal_env, const decimal_t * d_r) { 
-  const int printed_nb = decimal__print_raw_r(stduser_d, decimal_env, d_r); 
-  write_eol(stduser_d); 
-  return 1 + printed_nb; 
-}; 
-
-
-int decimal_mantisse__print_raw_r(const int stduser_d, decimal_env_t * decimal_env, const uint8_t * mantisse, const uint16_t mantisse_size) { 
-  uint8_t buffer[4]; 
-  int printed_nb = 0; 
-  printed_nb += write_string(stduser_d, "["); 
-  printed_nb += write_string(stduser_d, int_string_in_the_buffer(mantisse_size, sizeof(buffer), buffer)); 
-  printed_nb += write_string(stduser_d, "]"); 
-  printed_nb += write_string(stduser_d, "{ "); 
-  for (int i = 0; i < mantisse_size; i++) { 
-    //printed_nb += dputn(stduser_d, *(mantisse + i)); 
-    //printed_nb += write_string(stduser_d, int_string_in_the_buffer(*(mantisse + i), sizeof(buffer), buffer)); 
-    printed_nb += write_string(stduser_d, int_string_in_the_buffer(*(mantisse + mantisse_size - i - 1), sizeof(buffer), buffer)); 
-    printed_nb += write_string(stduser_d, ", "); 
-  }; 
-  printed_nb += write_string(stduser_d, " } "); 
-  return printed_nb; 
-}; 
-
-int decimal_mantisse__print_raw_ln_r(const int stduser_d, decimal_env_t * decimal_env, const uint8_t * mantisse, const uint16_t mantisse_size) { 
-  const int printed_nb = decimal_mantisse__print_raw_r(stduser_d, decimal_env, mantisse, mantisse_size); 
-  write_eol(stduser_d); 
-  return 1 + printed_nb; 
-}; 
-
-
-static const char * base100_digit_no_leading_zeros_to_cstr[] = { 
+//static const char * base100_digit_no_leading_zeros_to_cstr[] = { 
+static const char * digit_to_cstr__leading_zeroes__one[] = { 
    "0",  "1",  "2",  "3",  "4",  "5",  "6",  "7",  "8",  "9", 
   "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", 
   "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", 
@@ -53,10 +10,27 @@ static const char * base100_digit_no_leading_zeros_to_cstr[] = {
   "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", 
   "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", 
   "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", 
-  "90", "91", "92", "93", "94", "95", "96", "97", "98", "99"  
+  "90", "91", "92", "93", "94", "95", "96", "97", "98", "99",  
+  "100", "101", "102", "103", "104", "105", "106", "107", "108", "109", 
+  "110", "111", "112", "113", "114", "115", "116", "117", "118", "119", 
+  "120", "121", "122", "123", "124", "125", "126", "127", "128", "129", 
+  "130", "131", "132", "133", "134", "135", "136", "137", "138", "139", 
+  "140", "141", "142", "143", "144", "145", "146", "147", "148", "149", 
+  "150", "151", "152", "153", "154", "155", "156", "157", "158", "159", 
+  "160", "161", "162", "163", "164", "165", "166", "167", "168", "169", 
+  "170", "171", "172", "173", "174", "175", "176", "177", "178", "179", 
+  "180", "181", "182", "183", "184", "185", "186", "187", "188", "189", 
+  "190", "191", "192", "193", "194", "195", "196", "197", "198", "199",  
+  "200", "201", "202", "203", "204", "205", "206", "207", "208", "209", 
+  "210", "211", "212", "213", "214", "215", "216", "217", "218", "219", 
+  "220", "221", "222", "223", "224", "225", "226", "227", "228", "229", 
+  "230", "231", "232", "233", "234", "235", "236", "237", "238", "239", 
+  "240", "241", "242", "243", "244", "245", "246", "247", "248", "249", 
+  "250", "251", "252", "253", "254", "255" 
 }; 
 
-static const char * base100_digit_to_cstr[] = { 
+//static const char * base100_digit_to_cstr[] = { 
+static const char * digit_to_cstr__leading_zeroes__two[] = { 
   "00", "01", "02", "03", "04", "05", "06", "07", "08", "09", 
   "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", 
   "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", 
@@ -66,11 +40,56 @@ static const char * base100_digit_to_cstr[] = {
   "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", 
   "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", 
   "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", 
-  "90", "91", "92", "93", "94", "95", "96", "97", "98", "99"  
+  "90", "91", "92", "93", "94", "95", "96", "97", "98", "99",  
+  "100", "101", "102", "103", "104", "105", "106", "107", "108", "109", 
+  "110", "111", "112", "113", "114", "115", "116", "117", "118", "119", 
+  "120", "121", "122", "123", "124", "125", "126", "127", "128", "129", 
+  "130", "131", "132", "133", "134", "135", "136", "137", "138", "139", 
+  "140", "141", "142", "143", "144", "145", "146", "147", "148", "149", 
+  "150", "151", "152", "153", "154", "155", "156", "157", "158", "159", 
+  "160", "161", "162", "163", "164", "165", "166", "167", "168", "169", 
+  "170", "171", "172", "173", "174", "175", "176", "177", "178", "179", 
+  "180", "181", "182", "183", "184", "185", "186", "187", "188", "189", 
+  "190", "191", "192", "193", "194", "195", "196", "197", "198", "199",  
+  "200", "201", "202", "203", "204", "205", "206", "207", "208", "209", 
+  "210", "211", "212", "213", "214", "215", "216", "217", "218", "219", 
+  "220", "221", "222", "223", "224", "225", "226", "227", "228", "229", 
+  "230", "231", "232", "233", "234", "235", "236", "237", "238", "239", 
+  "240", "241", "242", "243", "244", "245", "246", "247", "248", "249", 
+  "250", "251", "252", "253", "254", "255" 
+}; 
+
+static const char * digit_to_cstr__leading_zeroes__three[] = { 
+  "000", "001", "002", "003", "004", "005", "006", "007", "008", "009", 
+  "010", "011", "012", "013", "014", "015", "016", "017", "018", "019", 
+  "020", "021", "022", "023", "024", "025", "026", "027", "028", "029", 
+  "030", "031", "032", "033", "034", "035", "036", "037", "038", "039", 
+  "040", "041", "042", "043", "044", "045", "046", "047", "048", "049", 
+  "050", "051", "052", "053", "054", "055", "056", "057", "058", "059", 
+  "060", "061", "062", "063", "064", "065", "066", "067", "068", "069", 
+  "070", "071", "072", "073", "074", "075", "076", "077", "078", "079", 
+  "080", "081", "082", "083", "084", "085", "086", "087", "088", "089", 
+  "090", "091", "092", "093", "094", "095", "096", "097", "098", "099",  
+  "100", "101", "102", "103", "104", "105", "106", "107", "108", "109", 
+  "110", "111", "112", "113", "114", "115", "116", "117", "118", "119", 
+  "120", "121", "122", "123", "124", "125", "126", "127", "128", "129", 
+  "130", "131", "132", "133", "134", "135", "136", "137", "138", "139", 
+  "140", "141", "142", "143", "144", "145", "146", "147", "148", "149", 
+  "150", "151", "152", "153", "154", "155", "156", "157", "158", "159", 
+  "160", "161", "162", "163", "164", "165", "166", "167", "168", "169", 
+  "170", "171", "172", "173", "174", "175", "176", "177", "178", "179", 
+  "180", "181", "182", "183", "184", "185", "186", "187", "188", "189", 
+  "190", "191", "192", "193", "194", "195", "196", "197", "198", "199",  
+  "200", "201", "202", "203", "204", "205", "206", "207", "208", "209", 
+  "210", "211", "212", "213", "214", "215", "216", "217", "218", "219", 
+  "220", "221", "222", "223", "224", "225", "226", "227", "228", "229", 
+  "230", "231", "232", "233", "234", "235", "236", "237", "238", "239", 
+  "240", "241", "242", "243", "244", "245", "246", "247", "248", "249", 
+  "250", "251", "252", "253", "254", "255" 
 }; 
 
 static const char * base100_digit_no_trailing_zeros_to_cstr[] = { 
-  "", "01", "02", "03", "04", "05", "06", "07", "08", "09", 
+   "", "01", "02", "03", "04", "05", "06", "07", "08", "09", 
   "1", "11", "12", "13", "14", "15", "16", "17", "18", "19", 
   "2", "21", "22", "23", "24", "25", "26", "27", "28", "29", 
   "3", "31", "32", "33", "34", "35", "36", "37", "38", "39", 
@@ -79,7 +98,23 @@ static const char * base100_digit_no_trailing_zeros_to_cstr[] = {
   "6", "61", "62", "63", "64", "65", "66", "67", "68", "69", 
   "7", "71", "72", "73", "74", "75", "76", "77", "78", "79", 
   "8", "81", "82", "83", "84", "85", "86", "87", "88", "89", 
-  "9", "91", "92", "93", "94", "95", "96", "97", "98", "99"  
+  "9", "91", "92", "93", "94", "95", "96", "97", "98", "99",  
+  "1" , "101", "102", "103", "104", "105", "106", "107", "108", "109", 
+  "11", "111", "112", "113", "114", "115", "116", "117", "118", "119", 
+  "12", "121", "122", "123", "124", "125", "126", "127", "128", "129", 
+  "13", "131", "132", "133", "134", "135", "136", "137", "138", "139", 
+  "14", "141", "142", "143", "144", "145", "146", "147", "148", "149", 
+  "15", "151", "152", "153", "154", "155", "156", "157", "158", "159", 
+  "16", "161", "162", "163", "164", "165", "166", "167", "168", "169", 
+  "17", "171", "172", "173", "174", "175", "176", "177", "178", "179", 
+  "18", "181", "182", "183", "184", "185", "186", "187", "188", "189", 
+  "19", "191", "192", "193", "194", "195", "196", "197", "198", "199",  
+  "2" , "201", "202", "203", "204", "205", "206", "207", "208", "209", 
+  "21", "211", "212", "213", "214", "215", "216", "217", "218", "219", 
+  "22", "221", "222", "223", "224", "225", "226", "227", "228", "229", 
+  "23", "231", "232", "233", "234", "235", "236", "237", "238", "239", 
+  "24", "241", "242", "243", "244", "245", "246", "247", "248", "249", 
+  "25", "251", "252", "253", "254", "255" 
 }; 
 
 
@@ -116,7 +151,344 @@ static const char * decimal_print__status_cstr(decimal_env_t * decimal_env, cons
   }; 
 }; 
 
+
+static uint8_t * decimal__conversion_matrix_from_internal_base_to_printing_base[DECIMAL_BASE_MAX] = { 
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL 
+}; 
+
+static uint16_t decimal__conversion_matrix_from_internal_base_to_printing_base__len[DECIMAL_BASE_MAX] = { }; 
+
+static uint16_t decimal__conversion_matrix_from_internal_base_to_printing_base__fixed_point_size[DECIMAL_BASE_MAX] = { }; 
+
+// Internally, the representation is 'DECIMAL_DIGITS_SIZE' long. 
+// In the printing base, the length gonna be [DECIMAL_DIGITS_SIZE * log(internal) / log(printing) ]. 
+// At worst, the printing base is two (not one, as it is not usable for longints), implying that the length is multiplied by log2(internal). 
+
+static void decimal__conversion_matrix_from_internal_base_to_printing_base__vector_scalar_mult(decimal_env_t * decimal_env, const uint8_t printing_base, const uint8_t scalar, const uint8_t vector_len, const uint8_t * vector_src, uint8_t * vector_dst) { 
+  
+  uint8_t carry_forward = 0; 
+  uint8_t index; 
+  for (index = 0; index < vector_len; index++) { 
+    const uint16_t m1 = vector_src[index]; 
+    if (m1 == DECIMAL_EOF_BYTE) goto label__propagate_carry_forward; 
+    const uint16_t m2 = printing_base; 
+    const uint16_t m3 = m1 * m2 + ((uint16_t) carry_forward); 
+    vector_dst[index] = m3 % printing_base; 
+    carry_forward     = m3 / printing_base; 
+  }; 
+  return; 
+
+  assert(false); 
+
+ label__propagate_carry_forward: { 
+    for (; index < vector_len; index++) { 
+      if (0 == carry_forward) break; 
+      vector_dst[index] = carry_forward % printing_base; 
+      carry_forward     = carry_forward / printing_base; 
+    }; 
+    return; 
+  }; 
+
+  assert(false); 
+}; 
+
+static void decimal__conversion_matrix_from_internal_base_to_printing_base__vector_scalar_div(decimal_env_t * decimal_env, const uint8_t printing_base, const uint8_t scalar, const uint8_t vector_len_given, const uint8_t * vector_src, uint8_t * vector_dst) { 
+
+#if 1 
+  { 
+    dputs_array(STDERR_FILENO, "vector_src{", int_string__stack(vector_len_given), "} = ["); 
+    for (uint8_t j = 0; j < vector_len_given; j++) { 
+      dputs_array(STDERR_FILENO, int_string__stack(vector_src[j]), ", "); 
+    }; 
+    dputs_array(STDERR_FILENO, "]" "\n"); 
+  }; 
+#endif 
+  
+  uint8_t vector_len = vector_len_given; 
+  // Skip meaningless digits. 
+  for(;;) { 
+    if (0 == vector_len) goto label__vector_src_is_zero; 
+    vector_len--; 
+    const uint8_t digit = vector_src[vector_len]; 
+    if (digit == DECIMAL_EOF_BYTE) continue; 
+    if (digit == 0) continue; 
+    vector_len++; 
+    break; 
+  }; 
+
+  dputs_array(STDERR_FILENO, "vector_len = ", int_string__stack(vector_len), "\n"); 
+  
+  bzero(vector_dst + vector_len, vector_len_given - vector_len); 
+  
+  uint8_t carry_backward = 0; 
+  uint8_t vector_i = vector_len - 1; 
+    
+  for (;;) { 
+    dputs_array(STDERR_FILENO, "carry_backward = ", int_string__stack(carry_backward), "\n"); 
+    const uint8_t digit = *(vector_src + vector_i); 
+    if (digit == DECIMAL_EOF_BYTE) goto label__propagate_carry_backward; 
+    const uint16_t actual_digit = (((uint16_t) carry_backward) * ((uint16_t) printing_base)) + ((uint16_t) digit); 
+    *(vector_dst + vector_i) = actual_digit / scalar; 
+    carry_backward           = actual_digit % scalar; 
+    if (0 == vector_i) { break; }; 
+    vector_i--; 
+  }; 
+  return; 
+
+  assert(false); 
+
+ label__vector_src_is_zero: { 
+    bcopy(vector_src, vector_dst, sizeof(uint8_t) * vector_len_given); 
+    return; 
+  }; 
+
+  assert(false); 
+
+ label__propagate_carry_backward: { 
+    for (;;) { 
+      dputs_array(STDERR_FILENO, "carry_backward = ", int_string__stack(carry_backward), "\n"); 
+      if (0 == carry_backward) break; 
+      const uint16_t actual_digit = (((uint16_t) carry_backward) * ((uint16_t) printing_base)); 
+      *(vector_dst + vector_i) = actual_digit / scalar; 
+      carry_backward           = actual_digit % scalar; 
+      if (0 == vector_i) { break; }; 
+      vector_i--; 
+    }; 
+    return; 
+  };   
+
+  assert(false); 
+}; 
+
+
+
+static void decimal__conversion_matrix_from_internal_base_to_printing_base__compute(decimal_env_t * decimal_env, const uint8_t printing_base) { 
+  assert(printing_base >= 2); 
+  assert(printing_base <= DECIMAL_BASE_MAX); 
+  
+  uint8_t * matrix = decimal__conversion_matrix_from_internal_base_to_printing_base[printing_base]; 
+  if (NULL != matrix) return; 
+  
+  static const uint8_t decimal_base__log2 = LOG2_OF_DECIMAL_BASE; 
+  //const uint8_t printing_base__log2 = GET_LOG2_VALUE_AS_MACRO(printing_base); 
+  //const uint8_t printing_base__log2 = GET_LOG2_VALUE_AS_ENUM(printing_base); 
+  //const uint8_t printing_base__log2 = LOG2_POS(printing_base); 
+  const uint8_t printing_base__log2 = UINT8_LOG2(printing_base); 
+  const uint8_t ratio0 = (1 + decimal_base__log2) / printing_base__log2; 
+  const uint8_t ratio = (0 == ratio0) ? 1 : ratio0; 
+  const uint16_t fixed_point_size = ((uint16_t) ratio) * ((uint16_t) DECIMAL_FIXED_POINT_SIZE); 
+  const uint16_t int_size         = ((uint16_t) ratio) * ((uint16_t) DECIMAL_INT_SIZE); 
+  const uint16_t len = int_size + fixed_point_size; 
+  decimal__conversion_matrix_from_internal_base_to_printing_base__len[printing_base] = len; 
+  
+  const uint32_t matrix_bytesize = sizeof(uint8_t) * len * DECIMAL_DIGITS_SIZE; 
+  matrix = (uint8_t *) malloc(matrix_bytesize); 
+  assert(matrix != NULL); 
+  
+  decimal__conversion_matrix_from_internal_base_to_printing_base[printing_base] = matrix; 
+  
+  
+  // INTEGER PART 
+  //bzero(matrix, matrix_bytesize); 
+  memset(matrix, DECIMAL_EOF_BYTE, matrix_bytesize); 
+#if 1 
+  matrix[DECIMAL_FIXED_POINT_SIZE * DECIMAL_DIGITS_SIZE + fixed_point_size] = 1; 
+#else 
+  matrix[DECIMAL_FIXED_POINT_SIZE][fixed_point_size] = 1; 
+#endif 
+  for (uint8_t vector_i = DECIMAL_FIXED_POINT_SIZE + 1; vector_i < DECIMAL_DIGITS_SIZE; vector_i++) { 
+    const uint16_t   current_vector_i = vector_i * DECIMAL_DIGITS_SIZE + fixed_point_size; 
+    const uint16_t  previous_vector_i = current_vector_i - DECIMAL_DIGITS_SIZE; 
+    uint8_t       *  current_vector = &(matrix[ current_vector_i]); 
+    const uint8_t * previous_vector = &(matrix[previous_vector_i]); 
+    decimal__conversion_matrix_from_internal_base_to_printing_base__vector_scalar_mult(decimal_env, printing_base, DECIMAL_BASE, int_size, previous_vector, current_vector); 
+  }; 
+
+  // FLOAT PART 
+  for (uint8_t vector_i = 0; vector_i < DECIMAL_FIXED_POINT_SIZE; vector_i++) { 
+    const uint16_t   current_vector_i = (DECIMAL_FIXED_POINT_SIZE_MINUS1 - vector_i) * DECIMAL_DIGITS_SIZE; 
+    const uint16_t  previous_vector_i = current_vector_i + DECIMAL_DIGITS_SIZE; 
+    uint8_t       *  current_vector   = &(matrix[ current_vector_i]); 
+    const uint8_t * previous_vector   = &(matrix[previous_vector_i]); 
+    decimal__conversion_matrix_from_internal_base_to_printing_base__vector_scalar_div(decimal_env, printing_base, DECIMAL_BASE, fixed_point_size + 1, previous_vector, current_vector); 
+  }; 
+
+
+#if 1 
+  { 
+    dputs_array(STDERR_FILENO, "------------------------------------------------------------------------------" "\n"); 
+    for (uint8_t i = 0; i < DECIMAL_DIGITS_SIZE; i++) { 
+      if (len <= UINT8_MAX) { 
+	dputs_array(STDERR_FILENO, "vector[", decimal__print_raw__digits[i], "]{", decimal__print_raw__digits[len], "} = ["); 
+      } 
+      else {  
+	dputs_array(STDERR_FILENO, "vector[", int_string__stack(i), "]{", int_string__stack(len), "} = ["); 
+      }; 
+      for (uint16_t j = 0; j < len; j++) { 
+	const uint16_t matrix_index = i * DECIMAL_DIGITS_SIZE + j; 
+	const uint8_t  matrix_digit = matrix[matrix_index]; 
+#if 1 
+	dputs_array(STDERR_FILENO, *(decimal__print_raw__digits + matrix_digit), ", "); 
+#else 
+	dputs_array(STDERR_FILENO, int_string__stack(matrix_digit), ", "); 
+#endif 
+      }; 
+      dputs_array(STDERR_FILENO, "]" "\n"); 
+    }; 
+    dputs_array(STDERR_FILENO, "------------------------------------------------------------------------------" "\n"); 
+  }; 
+#endif 
+  
+}; 
+
+
+
 int decimal__print_r(const int stduser_d, decimal_env_t * decimal_env, const decimal_t * d_r) { 
+  return decimal__print__base__int_and_float_separator_char__r(stduser_d, decimal_env, d_r, /*printing_base*/10, decimal_env -> print__int_and_float_separator_char); 
+}; 
+
+int decimal__print__base__int_and_float_separator_char__r(const int stduser_d, decimal_env_t * decimal_env, const decimal_t * d_r, const uint8_t printing_base, const char separator) { 
+  if (stduser_d <= 0) goto error_label__stduser_not_pos; 
+  uint8_t error_digit; 
+  const uint8_t status = (*d_r)[DECIMAL_STATUS_INDEX]; 
+  //decimal_status__value_is_a_status_huh(const uint8_t status); 
+  const char * status_cstr = decimal_print__status_cstr(decimal_env, status); 
+  if (NULL == status_cstr) goto error_label__not_listed_status; 
+  if ('\0' != *status_cstr) { 
+    return write_string(stduser_d, status_cstr); 
+  }; 
+
+  decimal__conversion_matrix_from_internal_base_to_printing_base__compute(decimal_env, printing_base); 
+  
+  int printed_bytes_nb = 0; 
+  int index = DECIMAL_FIXED_POINT_INDEX; //1 + DECIMAL_FIXED_POINT_SIZE; //DECIMAL_SIZE - 1; 
+  for (;;) { 
+    index++; 
+    if (index > DECIMAL_DIGITS_INDEX_LAST) break; 
+    if ((*d_r)[index] == DECIMAL_EOF_BYTE) break; 
+  }; 
+  for (;;) { 
+    index--; 
+    if (index <= DECIMAL_FIXED_POINT_INDEX) break; 
+    if (0 == (*d_r)[index]) continue; 
+    break; 
+  }; 
+  if (status == DECIMAL_STATUS__NEG) printed_bytes_nb += write(stduser_d, "-", 1); 
+  
+  // First digit — It should not have any leading zeroes. 
+  { 
+    const uint8_t digit = (*d_r)[index]; 
+    if (digit >= DECIMAL_BASE) { error_digit = digit; goto error_label__malformed_number; } 
+    //printed_bytes_nb += write_string(stduser_d, base100_digit_no_leading_zeros_to_cstr[digit]); 
+    printed_bytes_nb += write_string(stduser_d, digit_to_cstr__leading_zeroes__one[digit]); 
+  }; 
+  
+  // Intermediate digits (not the first one, not the last one) 
+  // until the location of the separator 
+  // It should have both leading and trailing zeroes. 
+  for (;;) { 
+    index--; 
+    if (index < DECIMAL_FIXED_POINT_INDEX) break; 
+    const uint8_t digit = (*d_r)[index]; 
+    if (digit >= DECIMAL_BASE) { error_digit = digit; goto error_label__malformed_number; }; 
+    //printed_bytes_nb += write_string(stduser_d, base100_digit_to_cstr[digit]); 
+#if (DECIMAL_BASE_MACRO <= 10) 
+    printed_bytes_nb += write_string(stduser_d, digit_to_cstr__leading_zeroes__one[digit]); 
+#elif (DECIMAL_BASE_MACRO <= 100) 
+    printed_bytes_nb += write_string(stduser_d, digit_to_cstr__leading_zeroes__two[digit]); 
+#else
+    printed_bytes_nb += write_string(stduser_d, digit_to_cstr__leading_zeroes__three[digit]); 
+#endif 
+  }; 
+
+  // Separator — Printing it if there is a digit. 
+  assert(index == DECIMAL_FIXED_POINT_INDEX_MINUS1); 
+  { 
+    const uint8_t digit = (*d_r)[index]; 
+    if (digit == DECIMAL_EOF_BYTE) goto label__exit; 
+    //printed_bytes_nb += write(stduser_d, ".", 1); 
+    printed_bytes_nb += write(stduser_d, &separator, 1); 
+  }; 
+  
+  // Intermediate digits (not the first one, not the last one) 
+  // after the location of the separator 
+  // It should have both leading and trailing zeroes. 
+  for (;;) { 
+    if (index <= DECIMAL_DIGITS_INDEX_FIRST) break; 
+    if ((*d_r)[index-1] == DECIMAL_EOF_BYTE) break; 
+    const uint8_t digit = (*d_r)[index]; 
+    assert(digit != DECIMAL_EOF_BYTE); 
+    if (digit >= DECIMAL_BASE) { error_digit = digit; goto error_label__malformed_number; }; 
+#if (DECIMAL_BASE_MACRO <= 10) 
+    printed_bytes_nb += write_string(stduser_d, digit_to_cstr__leading_zeroes__one[digit]); 
+#elif (DECIMAL_BASE_MACRO <= 100) 
+    printed_bytes_nb += write_string(stduser_d, digit_to_cstr__leading_zeroes__two[digit]); 
+#else
+    printed_bytes_nb += write_string(stduser_d, digit_to_cstr__leading_zeroes__three[digit]); 
+#endif 
+    index--; 
+  }; 
+
+  // Last digit — It may or may not have trailing zeroes 
+  assert(index >= DECIMAL_DIGITS_INDEX_FIRST); 
+  assert(index <= DECIMAL_FIXED_POINT_INDEX_MINUS1); 
+  { 
+    const uint8_t digit = (*d_r)[index]; 
+    assert(digit != DECIMAL_EOF_BYTE); 
+    if (digit >= DECIMAL_BASE) { error_digit = digit; goto error_label__malformed_number; }; 
+    printed_bytes_nb += write_string(stduser_d, base100_digit_no_trailing_zeros_to_cstr[digit]); 
+  }; 
+  
+  goto label__exit; 
+
+  assert(false); 
+
+ label__exit: { 
+    return printed_bytes_nb; 
+  }; 
+  
+ error_label__malformed_number: { 
+    decimal_env -> error_id = DECIMAL__MALFORMED_NUMBER; 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Malformed number: index = %d — char = %u", (int)index, ((unsigned int)error_digit)); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+    printed_bytes_nb += write_string(stduser_d, "<malformed number>"); 
+    return printed_bytes_nb; 
+  }; 
+
+ error_label__stduser_not_pos: { 
+    decimal_env -> error_id = DECIMAL__STDUSER_NOT_POS; 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "stduser_d is not positive: stduser_d = %d", (int)stduser_d); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+    return -1; 
+  }; 
+
+  error_label__not_listed_status: { 
+    return -1; 
+  }; 
+}; 
+
+
+#if 0 
+// OLD002
+int decimal__print_r(const int stduser_d, decimal_env_t * decimal_env, const decimal_t * d_r) { 
+  return decimal__print__int_and_float_separator_char__r(stduser_d, decimal_env, d_r, decimal_env -> print__int_and_float_separator_char); 
+}; 
+
+int decimal__print__int_and_float_separator_char__r(const int stduser_d, decimal_env_t * decimal_env, const decimal_t * d_r, const char separator) { 
   if (stduser_d <= 0) goto error_label__stduser_not_pos; 
   const uint8_t status = (*d_r)[DECIMAL_STATUS_INDEX]; 
   //decimal_status__value_is_a_status_huh(const uint8_t status); 
@@ -130,47 +502,79 @@ int decimal__print_r(const int stduser_d, decimal_env_t * decimal_env, const dec
   int index = DECIMAL_FIXED_POINT_INDEX; //1 + DECIMAL_FIXED_POINT_SIZE; //DECIMAL_SIZE - 1; 
   for (;;) { 
     index++; 
-    if (index == DECIMAL_SIZE) break; 
+    if (index > DECIMAL_DIGITS_INDEX_LAST) break; 
     if ((*d_r)[index] == DECIMAL_EOF_BYTE) break; 
   }; 
-  index--; 
+  for (;;) { 
+    index--; 
+    if (index <= DECIMAL_FIXED_POINT_INDEX) break; 
+    if (0 == (*d_r)[index]) continue; 
+    break; 
+  }; 
   if (status == DECIMAL_STATUS__NEG) printed_bytes_nb += write(stduser_d, "-", 1); 
-  uint8_t c; 
-  c = (*d_r)[index]; 
-  if (c >= 100) goto error_label__malformed_number; 
-  printed_bytes_nb += write_string(stduser_d, base100_digit_no_leading_zeros_to_cstr[c]); 
+  
+  // First digit — It should not have any leading zeroes. 
+  { 
+    const uint8_t digit = (*d_r)[index]; 
+    if (digit >= DECIMAL_BASE) goto error_label__malformed_number; 
+    //printed_bytes_nb += write_string(stduser_d, base100_digit_no_leading_zeros_to_cstr[digit]); 
+    printed_bytes_nb += write_string(stduser_d, digit_to_cstr__leading_zeroes__one[digit]); 
+  }; 
+  
+  // Intermediate digits (not the first one, not the last one) 
+  // until the location of the separator 
+  // It should have both leading and trailing zeroes. 
   for (;;) { 
     index--; 
     if (index < DECIMAL_FIXED_POINT_INDEX) break; 
-    c = (*d_r)[index]; 
-    if (c >= 100) goto error_label__malformed_number; 
-    printed_bytes_nb += write_string(stduser_d, base100_digit_to_cstr[c]); 
+    const uint8_t digit = (*d_r)[index]; 
+    if (digit >= DECIMAL_BASE) goto error_label__malformed_number; 
+    //printed_bytes_nb += write_string(stduser_d, base100_digit_to_cstr[digit]); 
+#if (DECIMAL_BASE_MACRO <= 10) 
+    printed_bytes_nb += write_string(stduser_d, digit_to_cstr__leading_zeroes__one[digit]); 
+#elif (DECIMAL_BASE_MACRO <= 100) 
+    printed_bytes_nb += write_string(stduser_d, digit_to_cstr__leading_zeroes__two[digit]); 
+#else
+    printed_bytes_nb += write_string(stduser_d, digit_to_cstr__leading_zeroes__three[digit]); 
+#endif 
+  }; 
+
+  // Separator — Printing it if there is a digit. 
+  assert(index == DECIMAL_FIXED_POINT_INDEX_MINUS1); 
+  { 
+    const uint8_t digit = (*d_r)[index]; 
+    if (digit == DECIMAL_EOF_BYTE) goto label__exit; 
+    //printed_bytes_nb += write(stduser_d, ".", 1); 
+    printed_bytes_nb += write(stduser_d, &separator, 1); 
   }; 
   
-  c = (*d_r)[index]; 
-  if (c == DECIMAL_EOF_BYTE) goto label__exit; 
-  printed_bytes_nb += write(stduser_d, ".", 1); 
+  // Intermediate digits (not the first one, not the last one) 
+  // after the location of the separator 
+  // It should have both leading and trailing zeroes. 
   for (;;) { 
-    const char * * c_cstr_array; 
-    if (index == DECIMAL_DIGITS_INDEX) { 
-      c_cstr_array = base100_digit_no_trailing_zeros_to_cstr; 
-      //printed_bytes_nb += write_string(stduser_d, base100_digit_no_trailing_zeros_to_cstr[c]); 
-    } 
-    else if ((*d_r)[index-1] == DECIMAL_EOF_BYTE) { 
-      c_cstr_array = base100_digit_no_trailing_zeros_to_cstr; 
-      //printed_bytes_nb += write_string(stduser_d, base100_digit_no_trailing_zeros_to_cstr[c]); 
-    }
-    else { 
-      c_cstr_array = base100_digit_to_cstr; 
-      //printed_bytes_nb += write_string(stduser_d, base100_digit_to_cstr[c]); 
-    }; 
-    const char * c_cstr = c_cstr_array[c]; 
-    printed_bytes_nb += write_string(stduser_d, c_cstr); 
+    if (index <= DECIMAL_DIGITS_INDEX_FIRST) break; 
+    if ((*d_r)[index-1] == DECIMAL_EOF_BYTE) break; 
+    const uint8_t digit = (*d_r)[index]; 
+    assert(digit != DECIMAL_EOF_BYTE); 
+    if (digit >= DECIMAL_BASE) goto error_label__malformed_number; 
+#if (DECIMAL_BASE_MACRO <= 10) 
+    printed_bytes_nb += write_string(stduser_d, digit_to_cstr__leading_zeroes__one[digit]); 
+#elif (DECIMAL_BASE_MACRO <= 100) 
+    printed_bytes_nb += write_string(stduser_d, digit_to_cstr__leading_zeroes__two[digit]); 
+#else
+    printed_bytes_nb += write_string(stduser_d, digit_to_cstr__leading_zeroes__three[digit]); 
+#endif 
     index--; 
-    if (index < DECIMAL_DIGITS_INDEX) break;  
-    c = (*d_r)[index]; 
-    if (c == DECIMAL_EOF_BYTE) return DECIMAL__OK; 
-    if (c >= 100) goto error_label__malformed_number; 
+  }; 
+
+  // Last digit — It may or may not have trailing zeroes 
+  assert(index >= DECIMAL_DIGITS_INDEX_FIRST); 
+  assert(index <= DECIMAL_FIXED_POINT_INDEX_MINUS1); 
+  { 
+    const uint8_t digit = (*d_r)[index]; 
+    assert(digit != DECIMAL_EOF_BYTE); 
+    if (digit >= DECIMAL_BASE) goto error_label__malformed_number; 
+    printed_bytes_nb += write_string(stduser_d, base100_digit_no_trailing_zeros_to_cstr[digit]); 
   }; 
   
   goto label__exit; 
@@ -201,6 +605,99 @@ int decimal__print_r(const int stduser_d, decimal_env_t * decimal_env, const dec
   }; 
 }; 
 
+
+#endif 
+
+#if 0
+int decimal__print_r__old001(const int stduser_d, decimal_env_t * decimal_env, const decimal_t * d_r) { 
+  if (stduser_d <= 0) goto error_label__stduser_not_pos; 
+  const uint8_t status = (*d_r)[DECIMAL_STATUS_INDEX]; 
+  //decimal_status__value_is_a_status_huh(const uint8_t status); 
+  const char * status_cstr = decimal_print__status_cstr(decimal_env, status); 
+  if (NULL == status_cstr) goto error_label__not_listed_status; 
+  if ('\0' != *status_cstr) { 
+    return write_string(stduser_d, status_cstr); 
+  }; 
+  
+  int printed_bytes_nb = 0; 
+  int index = DECIMAL_FIXED_POINT_INDEX; //1 + DECIMAL_FIXED_POINT_SIZE; //DECIMAL_SIZE - 1; 
+  for (;;) { 
+    index++; 
+    if (index == DECIMAL_SIZE) break; 
+    if ((*d_r)[index] == DECIMAL_EOF_BYTE) break; 
+  }; 
+  index--; 
+  if (status == DECIMAL_STATUS__NEG) printed_bytes_nb += write(stduser_d, "-", 1); 
+  uint8_t c; 
+  c = (*d_r)[index]; 
+  if (c >= DECIMAL_BASE) goto error_label__malformed_number; 
+  //printed_bytes_nb += write_string(stduser_d, base100_digit_no_leading_zeros_to_cstr[c]); 
+  printed_bytes_nb += write_string(stduser_d, digit_to_cstr__leading_zeroes__one[c]); 
+  for (;;) { 
+    index--; 
+    if (index < DECIMAL_FIXED_POINT_INDEX) break; 
+    c = (*d_r)[index]; 
+    if (c >= DECIMAL_BASE) goto error_label__malformed_number; 
+    //printed_bytes_nb += write_string(stduser_d, base100_digit_to_cstr[c]); 
+    printed_bytes_nb += write_string(stduser_d, digit_to_cstr__leading_zeroes__two[c]); 
+  }; 
+  
+  c = (*d_r)[index]; 
+  if (c == DECIMAL_EOF_BYTE) goto label__exit; 
+  printed_bytes_nb += write(stduser_d, ".", 1); 
+  for (;;) { 
+    const char * * c_cstr_array; 
+    if (index == DECIMAL_DIGITS_INDEX) { 
+      c_cstr_array = base100_digit_no_trailing_zeros_to_cstr; 
+      //printed_bytes_nb += write_string(stduser_d, base100_digit_no_trailing_zeros_to_cstr[c]); 
+    } 
+    else if ((*d_r)[index-1] == DECIMAL_EOF_BYTE) { 
+      c_cstr_array = base100_digit_no_trailing_zeros_to_cstr; 
+      //printed_bytes_nb += write_string(stduser_d, base100_digit_no_trailing_zeros_to_cstr[c]); 
+    }
+    else { 
+      c_cstr_array = base100_digit_to_cstr; 
+      //printed_bytes_nb += write_string(stduser_d, base100_digit_to_cstr[c]); 
+    }; 
+    const char * c_cstr = c_cstr_array[c]; 
+    printed_bytes_nb += write_string(stduser_d, c_cstr); 
+    index--; 
+    if (index < DECIMAL_DIGITS_INDEX) break;  
+    c = (*d_r)[index]; 
+    if (c == DECIMAL_EOF_BYTE) return DECIMAL__OK; 
+    if (c >= DECIMAL_BASE) goto error_label__malformed_number; 
+  }; 
+  
+  goto label__exit; 
+
+  assert(false); 
+
+ label__exit: { 
+    return printed_bytes_nb; 
+  }; 
+  
+ error_label__malformed_number: { 
+    decimal_env -> error_id = DECIMAL__MALFORMED_NUMBER; 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Malformed number: index = %d — char = %u", (int)index, ((unsigned int)c)); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+    printed_bytes_nb += write_string(stduser_d, "<malformed number>"); 
+    return printed_bytes_nb; 
+  }; 
+
+ error_label__stduser_not_pos: { 
+    decimal_env -> error_id = DECIMAL__STDUSER_NOT_POS; 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "stduser_d is not positive: stduser_d = %d", (int)stduser_d); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+    return -1; 
+  }; 
+
+  error_label__not_listed_status: { 
+    return -1; 
+  }; 
+}; 
+
+
+#endif 
 
 int decimal__print_ln_r(const int stduser_d, decimal_env_t * decimal_env, const decimal_t * d_r) { 
   const int printed_bytes_nb = decimal__print_r(stduser_d, decimal_env, d_r); 
@@ -241,7 +738,8 @@ static int decimal__print_debug_r(const int stduser_d, decimal_env_t * decimal_e
       const uint8_t c = (*d_r)[index]; 
       if (c == DECIMAL_EOF_BYTE) break; 
       if (c >= 100) { printed_bytes_nb += write_string(stduser_d, "<"); printed_bytes_nb += dputn(stduser_d, c); printed_bytes_nb += write_string(stduser_d, ">"); }  
-      else { printed_bytes_nb += write_string(stduser_d, base100_digit_to_cstr[c]); }; 
+      //else { printed_bytes_nb += write_string(stduser_d, base100_digit_to_cstr[c]); }; 
+      else { printed_bytes_nb += write_string(stduser_d, digit_to_cstr__leading_zeroes__two[c]); }; 
       index--; 
       if (DECIMAL_DIGITS_INDEX > index) break; 
     }; 

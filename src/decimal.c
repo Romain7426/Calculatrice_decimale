@@ -1,7 +1,6 @@
 #include "decimal_global.h"
 #include "decimal.h" 
 
-
 #define X(ident, value) const uint8_t ident##__compiled_value value; 
 DECIMAL_VERSION__LIST 
 #undef X 
@@ -119,11 +118,15 @@ struct decimal_env_t {
   const char * copyright; 
   
   const char * filename; 
+
+  char print__int_and_float_separator_char; 
   
 }; 
 
 enum { DECIMAL_ENV__SIZEOF__E = sizeof(struct decimal_env_t) }; 
 const uint16_t decimal_env__sizeof = sizeof(struct decimal_env_t); 
+
+#define DECIMAL__DEFAULT_PRINTING_INT_AND_FLOAT_SEPARATOR_CHAR '.' 
 
 decimal_env_t * decimal_env__make_m(const int stdlog_d) { 
   decimal_env_t * this; 
@@ -141,6 +144,7 @@ decimal_env_t * decimal_env__make_r(decimal_env_t * this, const int stdlog_d) {
   this -> string_stack[0] = '\0'; 
   this -> string_stack_nb = 1; 
   this -> copyright = decimal_copyright; 
+  this -> print__int_and_float_separator_char = DECIMAL__DEFAULT_PRINTING_INT_AND_FLOAT_SEPARATOR_CHAR; 
   return this; 
 }; 
 
@@ -180,6 +184,7 @@ void decimal_env__bzero(decimal_env_t * this) {
   this -> string_stack[0] = '\0'; 
   this -> string_stack_nb = 1; 
   this -> copyright = decimal_copyright; 
+  this -> print__int_and_float_separator_char = DECIMAL__DEFAULT_PRINTING_INT_AND_FLOAT_SEPARATOR_CHAR; 
 }; 
 
 const char * decimal_env__strcopy(decimal_env_t * this, const char * str) { 
@@ -198,6 +203,13 @@ const char * decimal_env__strcopy(decimal_env_t * this, const char * str) {
   return new_str; 
 }; 
 
+void decimal_env__printing_int_and_float_separator_char__set(decimal_env_t * this, const char separator) { 
+  this -> print__int_and_float_separator_char = separator; 
+}; 
+
+char decimal_env__printing_int_and_float_separator_char__get(const decimal_env_t * this) { 
+  return this -> print__int_and_float_separator_char; 
+}; 
 
 
 // --- DECIMAL_STATUS --- 
@@ -272,6 +284,8 @@ enum { DECIMAL_DIGITS_INDEX_FIRST_MINUS1 = DECIMAL_DIGITS_INDEX_FIRST - 1 };
 enum { DECIMAL_DIGITS_INDEX_LAST         = DECIMAL_DIGITS_INDEX_ELAST }; 
 enum { DECIMAL_DIGITS_INDEX_LAST_PLUS1   = DECIMAL_DIGITS_INDEX_LAST + 1 }; 
 enum { DECIMAL_FIXED_POINT_INDEX         = DECIMAL_DIGITS_INDEX + DECIMAL_FIXED_POINT_SIZE }; 
+enum { DECIMAL_FIXED_POINT_INDEX_MINUS1  = DECIMAL_FIXED_POINT_INDEX - 1 }; 
+enum { DECIMAL_FIXED_POINT_SIZE_MINUS1   = DECIMAL_FIXED_POINT_SIZE - 1 }; 
 enum { DECIMAL_ZERO_INDEX                = DECIMAL_FIXED_POINT_INDEX }; 
 enum { DECIMAL_INT_INDEX                 = DECIMAL_FIXED_POINT_INDEX }; 
 enum { DECIMAL_INT_SIZE                  = DECIMAL_DIGITS_SIZE - DECIMAL_FIXED_POINT_SIZE }; 
@@ -320,6 +334,10 @@ const uint8_t DECIMAL__LONGEST_INFIX_EXPRESSION__compiled_value  = (uint8_t) DEC
 #else 
 #  define RETURN_TYPE_T decimal_t * 
 #endif 
+
+
+#include "decimal_print_raw.ci" 
+
 
 static void decimal_mantisse__set_eof_r(decimal_t * d_r) { 
   for (int i = DECIMAL_DIGITS_INDEX; i < DECIMAL_DIGITS_INDEX_XLAST; i++) { 
@@ -433,8 +451,6 @@ uint8_t decimal_status__neg(decimal_env_t * decimal_env, const uint8_t d_status)
   }; 
   
 }; 
-
-
 
 
 enum { MANTISSE_ENDS__ZERO__IGNORE_HIGH__MASK = 2 }; 
@@ -1117,6 +1133,183 @@ static RETURN_TYPE_T decimal__cast_from_float_r__old001(decimal_env_t * this, de
   return DECIMAL__OK; 
 }; 
 #endif 
+
+
+extern RETURN_TYPE_T decimal__cast_from_string_int_r(decimal_env_t * this, decimal_t * d_r, const char * int_cstr, const uint8_t int_cstr_base) { 
+  const unsigned char * p; 
+  goto label__start; 
+
+ label__exit_ok: { 
+#ifdef RETURN_ERROR 
+    return DECIMAL__OK; 
+#else 
+    return d_r; 
+#endif 
+  }; 
+
+ error_label__first_digit_is_null: { 
+    this -> error_id = DECIMAL__FIRST_DIGIT_IS_NULL; 
+    snprintf(this -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "First digit of 'digits' array is null while it should not: %c (in: [%p] %s)", *p, int_cstr, int_cstr); 
+    if (this -> stdlog_d > 0) { dprintf(this -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, this -> error_str); }; 
+    return this -> error_id; 
+  }; 
+
+  error_label__digits_len_is_null: {
+    this -> error_id = DECIMAL__DIGITS_LEN_IS_NULL; 
+    snprintf(this -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Digits len is null while it should not: %c (in: [%p] %s)", *p, int_cstr, int_cstr); 
+    if (this -> stdlog_d > 0) { dprintf(this -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, this -> error_str); }; 
+    return this -> error_id; 
+  }; 
+
+  error_label__unexpected_digit: {
+    this -> error_id = DECIMAL__UNEXPECTED_DIGIT; 
+    snprintf(this -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "String contains an unexpected digit: %c (in: [%p] %s)", *p, int_cstr, int_cstr); 
+    if (this -> stdlog_d > 0) { dprintf(this -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, this -> error_str); }; 
+    return this -> error_id; 
+    }; 
+
+  error_label__only_neg_sign_cstr: { 
+    this -> error_id = DECIMAL__ONLY_NEG_SIGN_CSTR; 
+    snprintf(this -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "String contains only a negative sign: [%p] %s", int_cstr, int_cstr); 
+    if (this -> stdlog_d > 0) { dprintf(this -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, this -> error_str); }; 
+    return this -> error_id; 
+    }; 
+    
+  error_label__zero_base: { 
+    this -> error_id = DECIMAL__NULL_BASE_CSTR; 
+    snprintf(this -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Base of int-string is null: %u", int_cstr_base); 
+    if (this -> stdlog_d > 0) { dprintf(this -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, this -> error_str); }; 
+    return this -> error_id; 
+    }; 
+    
+  error_label__null_cstr: { 
+    this -> error_id = DECIMAL__NULL_CSTR; 
+    snprintf(this -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "String is null: [%p]", int_cstr); 
+    if (this -> stdlog_d > 0) { dprintf(this -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, this -> error_str); }; 
+    return this -> error_id; 
+  };
+
+ error_label__empty_cstr: { 
+    this -> error_id = DECIMAL__EMPTY_CSTR; 
+    snprintf(this -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "String is empty: [%p] '%s'", int_cstr, int_cstr); 
+    if (this -> stdlog_d > 0) { dprintf(this -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, this -> error_str); }; 
+    return this -> error_id; 
+  };
+
+ error_label__only_white_spaces_cstr: { 
+    this -> error_id = DECIMAL__ONLY_WHITE_SPACES_CSTR; 
+    snprintf(this -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "String contains only white-spaces: [%p] '%s'", int_cstr, int_cstr); 
+    if (this -> stdlog_d > 0) { dprintf(this -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, this -> error_str); }; 
+    return this -> error_id; 
+  };
+
+
+  label__start: {}; 
+  if (NULL == int_cstr) goto error_label__null_cstr; 
+  if ('\0' == *int_cstr) goto error_label__empty_cstr; 
+  if (0 == int_cstr_base) goto error_label__zero_base; 
+
+  decimal__zero_r(this, d_r); 
+ 
+  const size_t int_cstr_len = strlen(int_cstr); 
+  uint8_t digits[int_cstr_len]; 
+  size_t  digits_len = 0; 
+  p = int_cstr; 
+  
+  // Skip whites-spaces if any. 
+  while (' ' == *p) p++; 
+  if ('\0' == *p) goto error_label__only_white_spaces_cstr;
+  
+  // Check if there is a sign character. 
+  const int8_t negative_huh = ('-' == *p); 
+  if (negative_huh) { 
+    p++; 
+    while (' ' == *p) p++; 
+    if ('\0' == *p) goto error_label__only_neg_sign_cstr; 
+  }; 
+  
+  // Skip the first zeroes (if any). 
+  const int8_t has_leading_zeroes_huh = ('0' == *p); 
+  if (has_leading_zeroes_huh) { 
+    p++; 
+    while ('0' == *p) p++; 
+    if ('\0' == *p) goto label__exit_ok; 
+  }; 
+
+  
+  
+  if (int_cstr_base <= 10) goto label__regular_digits; 
+  goto label__complicated_digits; 
+
+  label__regular_digits: { 
+    for (;;) { 
+      const char c = *p; 
+      if (c == ' ') { 
+	p++; 
+	while (' ' == *p) p++; 
+	if ('\0' != *p) goto error_label__unexpected_digit; 
+	break; 
+      }; 
+      if (c == '\0') break; 
+      if (c < '0') goto error_label__unexpected_digit; 
+      if (c > '9') goto error_label__unexpected_digit; 
+      const uint8_t digit = c - '0'; 
+      if (digit >= int_cstr_base) goto error_label__unexpected_digit; 
+      //(*d_r)[DECIMAL_INT_INDEX] = digit; 
+      *(digits + digits_len) = digit; 
+      digits_len++; 
+      p++; 
+    }; 
+    if (0 == digits_len) { 
+      if (has_leading_zeroes_huh) { 
+	digits[digits_len] = '0'; 
+	digits_len++;
+      };
+    }; 
+
+    goto label__digits_filled; 
+  }; 
+  
+ label__complicated_digits: { 
+    assert(false); 
+  }; 
+
+
+ label__digits_filled: { 
+#if 1
+    { 
+      dputs_array(STDERR_FILENO, "DEBUG: ", "digits[", int_string__stack(digits_len), "] = ["); 
+      for (uint8_t i = 0; i < digits_len; i++) { 
+	dputs_array(STDERR_FILENO, int_string__stack(digits[i]), ", "); 
+      }; 
+      dputs_array(STDERR_FILENO, "]", "\n"); 
+    }; 
+#endif 
+    if (0 == digits_len) goto error_label__digits_len_is_null; 
+    if (0 == *digits) goto error_label__first_digit_is_null; 
+    if (DECIMAL_BASE == int_cstr_base) goto label__bases_are_equal; 
+    //if (DECIMAL_BASE > int_cstr_base) goto label__bases_are_equal; 
+    assert(false); 
+  }; 
+  
+ label__bases_are_equal: { 
+    if (digits_len > DECIMAL_INT_SIZE) { 
+      (*d_r)[DECIMAL_STATUS_INDEX] = negative_huh ? DECIMAL_STATUS__NEG_INFINI : DECIMAL_STATUS__POS_INFINI; 
+      goto label__exit_ok; 
+    }; 
+    for (uint8_t i = 0; i < digits_len; i++) { 
+      (*d_r)[DECIMAL_INT_INDEX + i] = digits[digits_len - 1 - i]; 
+    }; 
+    (*d_r)[DECIMAL_STATUS_INDEX] = negative_huh ? DECIMAL_STATUS__NEG : DECIMAL_STATUS__POS; 
+    goto label__exit_ok;     
+  }; 
+  
+  return DECIMAL__OK; 
+}; 
+
+
+
+
 
 
 
