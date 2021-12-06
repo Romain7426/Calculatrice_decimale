@@ -1135,6 +1135,11 @@ static RETURN_TYPE_T decimal__cast_from_float_r__old001(decimal_env_t * this, de
 #endif 
 
 
+
+
+#include "decimal_matrix_base_conversion.ci" 
+
+
 extern RETURN_TYPE_T decimal__cast_from_string_int_r(decimal_env_t * this, decimal_t * d_r, const char * int_cstr, const uint8_t int_cstr_base) { 
   const unsigned char * p; 
   goto label__start; 
