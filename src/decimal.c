@@ -1293,7 +1293,7 @@ extern RETURN_TYPE_T decimal__cast_from_string_int_r(decimal_env_t * this, decim
     if (0 == digits_len) goto error_label__digits_len_is_null; 
     if (0 == *digits) goto error_label__first_digit_is_null; 
     if (DECIMAL_BASE == int_cstr_base) goto label__bases_are_equal; 
-    //if (DECIMAL_BASE > int_cstr_base) goto label__bases_are_equal; 
+    goto label__bases_are_different; 
     assert(false); 
   }; 
   
@@ -1308,8 +1308,14 @@ extern RETURN_TYPE_T decimal__cast_from_string_int_r(decimal_env_t * this, decim
     (*d_r)[DECIMAL_STATUS_INDEX] = negative_huh ? DECIMAL_STATUS__NEG : DECIMAL_STATUS__POS; 
     goto label__exit_ok;     
   }; 
-  
-  return DECIMAL__OK; 
+
+
+ label__bases_are_different: { 
+    decimal__conversion_matrix_from_internal_base_to_printing_base__compute(decimal_env, /*printing_base*/int_cstr_base); 
+    goto label__exit_ok; 
+  }; 
+
+  assert(false); 
 }; 
 
 
