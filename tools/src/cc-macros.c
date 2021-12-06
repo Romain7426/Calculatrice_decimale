@@ -1,5 +1,9 @@
 #include <unistd.h>
 
+// $ echo "" | cpp -dM 
+// https://clang.llvm.org/docs/LanguageExtensions.html#builtin-macros
+// https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html#Common-Predefined-Macros
+
 #ifndef INT16_MAX
 enum { INT16_MAX = (1   <<  0) + (1   <<  1) + (1   <<  2) + (1   <<  3) + (1   <<  4) + (1   <<  5) + (1   <<  6) + (1   <<  7) + 
                    (1   <<  8) + (1   <<  9) + (1   << 10) + (1   << 11) + (1   << 12) + (1   << 13) + (1   << 14) }; 
@@ -132,6 +136,7 @@ int main(const int argc, const char * argv[]) {
  print_cpp_libs(); 
  print_misc(); 
  print_misc2(); 
+ print_misc3(); 
  
  return 0; 
 }; 
@@ -2073,6 +2078,12 @@ void print_misc2(void) {
 #ifdef __clang_version__ 
  WRITE_MACRO_VALUE(__clang_version__); 
 #endif
+#ifdef __clang_literal_encoding__
+ WRITE_MACRO_VALUE(__clang_literal_encoding__); 
+#endif
+#ifdef __clang_wide_literal_encoding__
+ WRITE_MACRO_VALUE(__clang_wide_literal_encoding__); 
+#endif
 #ifdef __code_model_small_ 
  WRITE_MACRO_VALUE(__code_model_small_); 
 #endif
@@ -2126,6 +2137,990 @@ void print_misc3(void) {
 
 #if defined(__BOUNDS_CHECKING_ON)
  WRITE_MACRO_VALUE(__BOUNDS_CHECKING_ON); 
+#endif
+
+#if defined(__BASE_FILE__)
+ WRITE_MACRO_VALUE(__BASE_FILE__); 
+#endif
+
+#if defined(__FILE__)
+ WRITE_MACRO_VALUE(__FILE__); 
+#endif
+
+#if defined(__FILE_NAME__)
+ WRITE_MACRO_VALUE(__FILE_NAME__); 
+#endif
+
+#if defined(__LINE__)
+ WRITE_MACRO_VALUE(__LINE__); 
+#endif
+
+#if defined(__TIMESTAMP__)
+ WRITE_MACRO_VALUE(__TIMESTAMP__); 
+#endif
+
+#if defined(__COUNTER__)
+ WRITE_MACRO_VALUE(__COUNTER__); 
+#endif
+
+#if defined(__INCLUDE_LEVEL__)
+ WRITE_MACRO_VALUE(__INCLUDE_LEVEL__); 
+#endif
+
+#if defined(__GFORTRAN__)
+ WRITE_MACRO_VALUE(__GFORTRAN__); 
+#endif
+
+#if defined(__GNUG__)
+ WRITE_MACRO_VALUE(__GNUG__); 
+#endif
+
+#if defined(__STRICT_ANSI__)
+ WRITE_MACRO_VALUE(__STRICT_ANSI__); 
+#endif
+
+#if defined(__ELF__)
+ WRITE_MACRO_VALUE(__ELF__); 
+#endif
+
+#if defined(__VERSION__)
+ WRITE_MACRO_VALUE(__VERSION__); 
+#endif
+
+#if defined(__OPTIMIZE__)
+ WRITE_MACRO_VALUE(__OPTIMIZE__); 
+#endif
+
+#if defined(__OPTIMIZE_SIZE__)
+ WRITE_MACRO_VALUE(__OPTIMIZE_SIZE__); 
+#endif
+
+#if defined(__NO_INLINE__)
+ WRITE_MACRO_VALUE(__NO_INLINE__); 
+#endif
+
+#if defined(__GNUC_GNU_INLINE__)
+ WRITE_MACRO_VALUE(__GNUC_GNU_INLINE__); 
+#endif
+
+#if defined(__GNUC_STDC_INLINE__)
+ WRITE_MACRO_VALUE(__GNUC_STDC_INLINE__); 
+#endif
+
+#if defined(__CHAR_UNSIGNED__)
+ WRITE_MACRO_VALUE(__CHAR_UNSIGNED__); 
+#endif
+
+#if defined(__WCHAR_UNSIGNED__)
+ WRITE_MACRO_VALUE(__WCHAR_UNSIGNED__); 
+#endif
+
+#if defined(__REGISTER_PREFIX__)
+ WRITE_MACRO_VALUE(__REGISTER_PREFIX__); 
+#endif
+
+#if defined(__USER_LABEL_PREFIX__)
+ WRITE_MACRO_VALUE(__USER_LABEL_PREFIX__); 
+#endif
+
+#if defined(__SIZE_TYPE__)
+ WRITE_MACRO_VALUE(__SIZE_TYPE__); 
+#endif
+
+#if defined(__PTRDIFF_TYPE__)
+ WRITE_MACRO_VALUE(__PTRDIFF_TYPE__); 
+#endif
+
+#if defined(__WCHAR_TYPE__)
+ WRITE_MACRO_VALUE(__WCHAR_TYPE__); 
+#endif
+
+#if defined(__WINT_TYPE__)
+ WRITE_MACRO_VALUE(__WINT_TYPE__); 
+#endif
+
+#if defined(__INTMAX_TYPE__)
+ WRITE_MACRO_VALUE(__INTMAX_TYPE__); 
+#endif
+
+#if defined(__UINTMAX_TYPE__)
+ WRITE_MACRO_VALUE(__UINTMAX_TYPE__); 
+#endif
+
+#if defined(__SIG_ATOMIC_TYPE__)
+ WRITE_MACRO_VALUE(__SIG_ATOMIC_TYPE__); 
+#endif
+
+#if defined(__INT8_TYPE__)
+ WRITE_MACRO_VALUE(__INT8_TYPE__); 
+#endif
+
+#if defined(__INT16_TYPE__)
+ WRITE_MACRO_VALUE(__INT16_TYPE__); 
+#endif
+
+#if defined(__INT32_TYPE__)
+ WRITE_MACRO_VALUE(__INT32_TYPE__); 
+#endif
+
+#if defined(__INT64_TYPE__)
+ WRITE_MACRO_VALUE(__INT64_TYPE__); 
+#endif
+
+#if defined(__UINT8_TYPE__)
+ WRITE_MACRO_VALUE(__UINT8_TYPE__); 
+#endif
+
+#if defined(__UINT16_TYPE__)
+ WRITE_MACRO_VALUE(__UINT16_TYPE__); 
+#endif
+
+#if defined(__UINT32_TYPE__)
+ WRITE_MACRO_VALUE(__UINT32_TYPE__); 
+#endif
+
+#if defined(__UINT64_TYPE__)
+ WRITE_MACRO_VALUE(__UINT64_TYPE__); 
+#endif
+
+#if defined(__INT_LEAST8_TYPE__)
+ WRITE_MACRO_VALUE(__INT_LEAST8_TYPE__); 
+#endif
+
+#if defined(__INT_LEAST16_TYPE__)
+ WRITE_MACRO_VALUE(__INT_LEAST16_TYPE__); 
+#endif
+
+#if defined(__INT_LEAST32_TYPE__)
+ WRITE_MACRO_VALUE(__INT_LEAST32_TYPE__); 
+#endif
+
+#if defined(__INT_LEAST64_TYPE__)
+ WRITE_MACRO_VALUE(__INT_LEAST64_TYPE__); 
+#endif
+
+#if defined(__UINT_LEAST8_TYPE__)
+ WRITE_MACRO_VALUE(__UINT_LEAST8_TYPE__); 
+#endif
+
+#if defined(__UINT_LEAST16_TYPE__)
+ WRITE_MACRO_VALUE(__UINT_LEAST16_TYPE__); 
+#endif
+
+#if defined(__UINT_LEAST32_TYPE__)
+ WRITE_MACRO_VALUE(__UINT_LEAST32_TYPE__); 
+#endif
+
+#if defined(__UINT_LEAST64_TYPE__)
+ WRITE_MACRO_VALUE(__UINT_LEAST64_TYPE__); 
+#endif
+
+#if defined(__INT_FAST8_TYPE__)
+ WRITE_MACRO_VALUE(__INT_FAST8_TYPE__); 
+#endif
+
+#if defined(__INT_FAST16_TYPE__)
+ WRITE_MACRO_VALUE(__INT_FAST16_TYPE__); 
+#endif
+
+#if defined(__INT_FAST32_TYPE__)
+ WRITE_MACRO_VALUE(__INT_FAST32_TYPE__); 
+#endif
+
+#if defined(__INT_FAST64_TYPE__)
+ WRITE_MACRO_VALUE(__INT_FAST64_TYPE__); 
+#endif
+
+#if defined(__UINT_FAST8_TYPE__)
+ WRITE_MACRO_VALUE(__UINT_FAST8_TYPE__); 
+#endif
+
+#if defined(__UINT_FAST16_TYPE__)
+ WRITE_MACRO_VALUE(__UINT_FAST16_TYPE__); 
+#endif
+
+#if defined(__UINT_FAST32_TYPE__)
+ WRITE_MACRO_VALUE(__UINT_FAST32_TYPE__); 
+#endif
+
+#if defined(__UINT_FAST64_TYPE__)
+ WRITE_MACRO_VALUE(__UINT_FAST64_TYPE__); 
+#endif
+
+#if defined(__INTPTR_TYPE__)
+ WRITE_MACRO_VALUE(__INTPTR_TYPE__); 
+#endif
+
+#if defined(__UINTPTR_TYPE__)
+ WRITE_MACRO_VALUE(__UINTPTR_TYPE__); 
+#endif
+
+#if defined(__CHAR_BIT__)
+ WRITE_MACRO_VALUE(__CHAR_BIT__); 
+#endif
+
+#if defined(__SCHAR_MAX__)
+ WRITE_MACRO_VALUE(__SCHAR_MAX__); 
+#endif
+
+#if defined(__WCHAR_MAX__)
+ WRITE_MACRO_VALUE(__WCHAR_MAX__); 
+#endif
+
+#if defined(__SHRT_MAX__)
+ WRITE_MACRO_VALUE(__SHRT_MAX__); 
+#endif
+
+#if defined(__INT_MAX__)
+ WRITE_MACRO_VALUE(__INT_MAX__); 
+#endif
+
+#if defined(__LONG_MAX__)
+ WRITE_MACRO_VALUE(__LONG_MAX__); 
+#endif
+
+#if defined(__LONG_LONG_MAX__)
+ WRITE_MACRO_VALUE(__LONG_LONG_MAX__); 
+#endif
+
+#if defined(__WINT_MAX__)
+ WRITE_MACRO_VALUE(__WINT_MAX__); 
+#endif
+
+#if defined(__SIZE_MAX__)
+ WRITE_MACRO_VALUE(__SIZE_MAX__); 
+#endif
+
+#if defined(__PTRDIFF_MAX__)
+ WRITE_MACRO_VALUE(__PTRDIFF_MAX__); 
+#endif
+
+#if defined(__INTMAX_MAX__)
+ WRITE_MACRO_VALUE(__INTMAX_MAX__); 
+#endif
+
+#if defined(__UINTMAX_MAX__)
+ WRITE_MACRO_VALUE(__UINTMAX_MAX__); 
+#endif
+
+#if defined(__SIG_ATOMIC_MAX__)
+ WRITE_MACRO_VALUE(__SIG_ATOMIC_MAX__); 
+#endif
+
+#if defined(__INT8_MAX__)
+ WRITE_MACRO_VALUE(__INT8_MAX__); 
+#endif
+
+#if defined(__INT16_MAX__)
+ WRITE_MACRO_VALUE(__INT16_MAX__); 
+#endif
+
+#if defined(__INT32_MAX__)
+ WRITE_MACRO_VALUE(__INT32_MAX__); 
+#endif
+
+#if defined(__INT64_MAX__)
+ WRITE_MACRO_VALUE(__INT64_MAX__); 
+#endif
+
+#if defined(__UINT8_MAX__)
+ WRITE_MACRO_VALUE(__UINT8_MAX__); 
+#endif
+
+#if defined(__UINT16_MAX__)
+ WRITE_MACRO_VALUE(__UINT16_MAX__); 
+#endif
+
+#if defined(__UINT32_MAX__)
+ WRITE_MACRO_VALUE(__UINT32_MAX__); 
+#endif
+
+#if defined(__UINT64_MAX__)
+ WRITE_MACRO_VALUE(__UINT64_MAX__); 
+#endif
+
+#if defined(__INT_LEAST8_MAX__)
+ WRITE_MACRO_VALUE(__INT_LEAST8_MAX__); 
+#endif
+
+#if defined(__INT_LEAST16_MAX__)
+ WRITE_MACRO_VALUE(__INT_LEAST16_MAX__); 
+#endif
+
+#if defined(__INT_LEAST32_MAX__)
+ WRITE_MACRO_VALUE(__INT_LEAST32_MAX__); 
+#endif
+
+#if defined(__INT_LEAST64_MAX__)
+ WRITE_MACRO_VALUE(__INT_LEAST64_MAX__); 
+#endif
+
+#if defined(__UINT_LEAST8_MAX__)
+ WRITE_MACRO_VALUE(__UINT_LEAST8_MAX__); 
+#endif
+
+#if defined(__UINT_LEAST16_MAX__)
+ WRITE_MACRO_VALUE(__UINT_LEAST16_MAX__); 
+#endif
+
+#if defined(__UINT_LEAST32_MAX__)
+ WRITE_MACRO_VALUE(__UINT_LEAST32_MAX__); 
+#endif
+
+#if defined(__UINT_LEAST64_MAX__)
+ WRITE_MACRO_VALUE(__UINT_LEAST64_MAX__); 
+#endif
+
+#if defined(__INT_FAST8_MAX__)
+ WRITE_MACRO_VALUE(__INT_FAST8_MAX__); 
+#endif
+
+#if defined(__INT_FAST16_MAX__)
+ WRITE_MACRO_VALUE(__INT_FAST16_MAX__); 
+#endif
+
+#if defined(__INT_FAST32_MAX__)
+ WRITE_MACRO_VALUE(__INT_FAST32_MAX__); 
+#endif
+
+#if defined(__INT_FAST64_MAX__)
+ WRITE_MACRO_VALUE(__INT_FAST64_MAX__); 
+#endif
+
+#if defined(__UINT_FAST8_MAX__)
+ WRITE_MACRO_VALUE(__UINT_FAST8_MAX__); 
+#endif
+
+#if defined(__UINT_FAST16_MAX__)
+ WRITE_MACRO_VALUE(__UINT_FAST16_MAX__); 
+#endif
+
+#if defined(__UINT_FAST32_MAX__)
+ WRITE_MACRO_VALUE(__UINT_FAST32_MAX__); 
+#endif
+
+#if defined(__UINT_FAST64_MAX__)
+ WRITE_MACRO_VALUE(__UINT_FAST64_MAX__); 
+#endif
+
+#if defined(__INTPTR_MAX__)
+ WRITE_MACRO_VALUE(__INTPTR_MAX__); 
+#endif
+
+#if defined(__UINTPTR_MAX__)
+ WRITE_MACRO_VALUE(__UINTPTR_MAX__); 
+#endif
+
+#if defined(__SCHAR_MIN__)
+ WRITE_MACRO_VALUE(__SCHAR_MIN__); 
+#endif
+
+#if defined(__WCHAR_MIN__)
+ WRITE_MACRO_VALUE(__WCHAR_MIN__); 
+#endif
+
+#if defined(__SHRT_MIN__)
+ WRITE_MACRO_VALUE(__SHRT_MIN__); 
+#endif
+
+#if defined(__INT_MIN__)
+ WRITE_MACRO_VALUE(__INT_MIN__); 
+#endif
+
+#if defined(__LONG_MIN__)
+ WRITE_MACRO_VALUE(__LONG_MIN__); 
+#endif
+
+#if defined(__LONG_LONG_MIN__)
+ WRITE_MACRO_VALUE(__LONG_LONG_MIN__); 
+#endif
+
+#if defined(__WINT_MIN__)
+ WRITE_MACRO_VALUE(__WINT_MIN__); 
+#endif
+
+#if defined(__SIZE_MIN__)
+ WRITE_MACRO_VALUE(__SIZE_MIN__); 
+#endif
+
+#if defined(__PTRDIFF_MIN__)
+ WRITE_MACRO_VALUE(__PTRDIFF_MIN__); 
+#endif
+
+#if defined(__INTMIN_MIN__)
+ WRITE_MACRO_VALUE(__INTMIN_MIN__); 
+#endif
+
+#if defined(__UINTMIN_MIN__)
+ WRITE_MACRO_VALUE(__UINTMIN_MIN__); 
+#endif
+
+#if defined(__SIG_ATOMIC_MIN__)
+ WRITE_MACRO_VALUE(__SIG_ATOMIC_MIN__); 
+#endif
+
+#if defined(__INT8_MIN__)
+ WRITE_MACRO_VALUE(__INT8_MIN__); 
+#endif
+
+#if defined(__INT16_MIN__)
+ WRITE_MACRO_VALUE(__INT16_MIN__); 
+#endif
+
+#if defined(__INT32_MIN__)
+ WRITE_MACRO_VALUE(__INT32_MIN__); 
+#endif
+
+#if defined(__INT64_MIN__)
+ WRITE_MACRO_VALUE(__INT64_MIN__); 
+#endif
+
+#if defined(__UINT8_MIN__)
+ WRITE_MACRO_VALUE(__UINT8_MIN__); 
+#endif
+
+#if defined(__UINT16_MIN__)
+ WRITE_MACRO_VALUE(__UINT16_MIN__); 
+#endif
+
+#if defined(__UINT32_MIN__)
+ WRITE_MACRO_VALUE(__UINT32_MIN__); 
+#endif
+
+#if defined(__UINT64_MIN__)
+ WRITE_MACRO_VALUE(__UINT64_MIN__); 
+#endif
+
+#if defined(__INT_LEAST8_MIN__)
+ WRITE_MACRO_VALUE(__INT_LEAST8_MIN__); 
+#endif
+
+#if defined(__INT_LEAST16_MIN__)
+ WRITE_MACRO_VALUE(__INT_LEAST16_MIN__); 
+#endif
+
+#if defined(__INT_LEAST32_MIN__)
+ WRITE_MACRO_VALUE(__INT_LEAST32_MIN__); 
+#endif
+
+#if defined(__INT_LEAST64_MIN__)
+ WRITE_MACRO_VALUE(__INT_LEAST64_MIN__); 
+#endif
+
+#if defined(__UINT_LEAST8_MIN__)
+ WRITE_MACRO_VALUE(__UINT_LEAST8_MIN__); 
+#endif
+
+#if defined(__UINT_LEAST16_MIN__)
+ WRITE_MACRO_VALUE(__UINT_LEAST16_MIN__); 
+#endif
+
+#if defined(__UINT_LEAST32_MIN__)
+ WRITE_MACRO_VALUE(__UINT_LEAST32_MIN__); 
+#endif
+
+#if defined(__UINT_LEAST64_MIN__)
+ WRITE_MACRO_VALUE(__UINT_LEAST64_MIN__); 
+#endif
+
+#if defined(__INT_FAST8_MIN__)
+ WRITE_MACRO_VALUE(__INT_FAST8_MIN__); 
+#endif
+
+#if defined(__INT_FAST16_MIN__)
+ WRITE_MACRO_VALUE(__INT_FAST16_MIN__); 
+#endif
+
+#if defined(__INT_FAST32_MIN__)
+ WRITE_MACRO_VALUE(__INT_FAST32_MIN__); 
+#endif
+
+#if defined(__INT_FAST64_MIN__)
+ WRITE_MACRO_VALUE(__INT_FAST64_MIN__); 
+#endif
+
+#if defined(__UINT_FAST8_MIN__)
+ WRITE_MACRO_VALUE(__UINT_FAST8_MIN__); 
+#endif
+
+#if defined(__UINT_FAST16_MIN__)
+ WRITE_MACRO_VALUE(__UINT_FAST16_MIN__); 
+#endif
+
+#if defined(__UINT_FAST32_MIN__)
+ WRITE_MACRO_VALUE(__UINT_FAST32_MIN__); 
+#endif
+
+#if defined(__UINT_FAST64_MIN__)
+ WRITE_MACRO_VALUE(__UINT_FAST64_MIN__); 
+#endif
+
+#if defined(__INTPTR_MIN__)
+ WRITE_MACRO_VALUE(__INTPTR_MIN__); 
+#endif
+
+#if defined(__UINTPTR_MIN__)
+ WRITE_MACRO_VALUE(__UINTPTR_MIN__); 
+#endif
+
+#if defined(__INT8_C)
+ WRITE_MACRO_VALUE(__INT8_C); 
+#endif
+
+#if defined(__INT16_C)
+ WRITE_MACRO_VALUE(__INT16_C); 
+#endif
+
+#if defined(__INT32_C)
+ WRITE_MACRO_VALUE(__INT32_C); 
+#endif
+
+#if defined(__INT64_C)
+ WRITE_MACRO_VALUE(__INT64_C); 
+#endif
+
+#if defined(__UINT8_C)
+ WRITE_MACRO_VALUE(__UINT8_C); 
+#endif
+
+#if defined(__UINT16_C)
+ WRITE_MACRO_VALUE(__UINT16_C); 
+#endif
+
+#if defined(__UINT32_C)
+ WRITE_MACRO_VALUE(__UINT32_C); 
+#endif
+
+#if defined(__UINT64_C)
+ WRITE_MACRO_VALUE(__UINT64_C); 
+#endif
+
+#if defined(__INTMAX_C)
+ WRITE_MACRO_VALUE(__INTMAX_C); 
+#endif
+
+#if defined(__UINTMAX_C)
+ WRITE_MACRO_VALUE(__UINTMAX_C); 
+#endif
+
+#if defined(__SCHAR_WIDTH__)
+ WRITE_MACRO_VALUE(__SCHAR_WIDTH__); 
+#endif
+
+#if defined(__WCHAR_WIDTH__)
+ WRITE_MACRO_VALUE(__WCHAR_WIDTH__); 
+#endif
+
+#if defined(__SHRT_WIDTH__)
+ WRITE_MACRO_VALUE(__SHRT_WIDTH__); 
+#endif
+
+#if defined(__INT_WIDTH__)
+ WRITE_MACRO_VALUE(__INT_WIDTH__); 
+#endif
+
+#if defined(__WINT_WIDTH__)
+ WRITE_MACRO_VALUE(__WINT_WIDTH__); 
+#endif
+
+#if defined(__LONG_WIDTH__)
+ WRITE_MACRO_VALUE(__LONG_WIDTH__); 
+#endif
+
+#if defined(__LONG_LONG_WIDTH__)
+ WRITE_MACRO_VALUE(__LONG_LONG_WIDTH__); 
+#endif
+
+#if defined(__PTRDIFF_WIDTH__)
+ WRITE_MACRO_VALUE(__PTRDIFF_WIDTH__); 
+#endif
+
+#if defined(__SIG_ATOMIC_WIDTH__)
+ WRITE_MACRO_VALUE(__SIG_ATOMIC_WIDTH__); 
+#endif
+
+#if defined(__SIZE_WIDTH__)
+ WRITE_MACRO_VALUE(__SIZE_WIDTH__); 
+#endif
+
+#if defined(__INT_LEAST8_WIDTH__)
+ WRITE_MACRO_VALUE(__INT_LEAST8_WIDTH__); 
+#endif
+
+#if defined(__INT_LEAST16_WIDTH__)
+ WRITE_MACRO_VALUE(__INT_LEAST16_WIDTH__); 
+#endif
+
+#if defined(__INT_LEAST32_WIDTH__)
+ WRITE_MACRO_VALUE(__INT_LEAST32_WIDTH__); 
+#endif
+
+#if defined(__INT_LEAST64_WIDTH__)
+ WRITE_MACRO_VALUE(__INT_LEAST64_WIDTH__); 
+#endif
+
+#if defined(__UINT_LEAST8_WIDTH__)
+ WRITE_MACRO_VALUE(__UINT_LEAST8_WIDTH__); 
+#endif
+
+#if defined(__UINT_LEAST16_WIDTH__)
+ WRITE_MACRO_VALUE(__UINT_LEAST16_WIDTH__); 
+#endif
+
+#if defined(__UINT_LEAST32_WIDTH__)
+ WRITE_MACRO_VALUE(__UINT_LEAST32_WIDTH__); 
+#endif
+
+#if defined(__UINT_LEAST64_WIDTH__)
+ WRITE_MACRO_VALUE(__UINT_LEAST64_WIDTH__); 
+#endif
+
+#if defined(__INT_FAST8_WIDTH__)
+ WRITE_MACRO_VALUE(__INT_FAST8_WIDTH__); 
+#endif
+
+#if defined(__INT_FAST16_WIDTH__)
+ WRITE_MACRO_VALUE(__INT_FAST16_WIDTH__); 
+#endif
+
+#if defined(__INT_FAST32_WIDTH__)
+ WRITE_MACRO_VALUE(__INT_FAST32_WIDTH__); 
+#endif
+
+#if defined(__INT_FAST64_WIDTH__)
+ WRITE_MACRO_VALUE(__INT_FAST64_WIDTH__); 
+#endif
+
+#if defined(__UINT_FAST8_WIDTH__)
+ WRITE_MACRO_VALUE(__UINT_FAST8_WIDTH__); 
+#endif
+
+#if defined(__UINT_FAST16_WIDTH__)
+ WRITE_MACRO_VALUE(__UINT_FAST16_WIDTH__); 
+#endif
+
+#if defined(__UINT_FAST32_WIDTH__)
+ WRITE_MACRO_VALUE(__UINT_FAST32_WIDTH__); 
+#endif
+
+#if defined(__UINT_FAST64_WIDTH__)
+ WRITE_MACRO_VALUE(__UINT_FAST64_WIDTH__); 
+#endif
+
+#if defined(__INTPTR_WIDTH__)
+ WRITE_MACRO_VALUE(__INTPTR_WIDTH__); 
+#endif
+
+#if defined(__UINTPTR_WIDTH__)
+ WRITE_MACRO_VALUE(__UINTPTR_WIDTH__); 
+#endif
+
+#if defined(__INTMAX_WIDTH__)
+ WRITE_MACRO_VALUE(__INTMAX_WIDTH__); 
+#endif
+
+#if defined(__UINTMAX_WIDTH__)
+ WRITE_MACRO_VALUE(__UINTMAX_WIDTH__); 
+#endif
+
+#if defined(__SIZEOF_SHORT__)
+ WRITE_MACRO_VALUE(__SIZEOF_SHORT__); 
+#endif
+
+#if defined(__SIZEOF_INT__)
+ WRITE_MACRO_VALUE(__SIZEOF_INT__); 
+#endif
+
+#if defined(__SIZEOF_WINT__)
+ WRITE_MACRO_VALUE(__SIZEOF_WINT__); 
+#endif
+
+#if defined(__SIZEOF_LONG__)
+ WRITE_MACRO_VALUE(__SIZEOF_LONG__); 
+#endif
+
+#if defined(__SIZEOF_LONG_LONG__)
+ WRITE_MACRO_VALUE(__SIZEOF_LONG_LONG__); 
+#endif
+
+#if defined(__SIZEOF_POINTER__)
+ WRITE_MACRO_VALUE(__SIZEOF_POINTER__); 
+#endif
+
+#if defined(__SIZEOF_FLOAT__)
+ WRITE_MACRO_VALUE(__SIZEOF_FLOAT__); 
+#endif
+
+#if defined(__SIZEOF_DOUBLE__)
+ WRITE_MACRO_VALUE(__SIZEOF_DOUBLE__); 
+#endif
+
+#if defined(__SIZEOF_LONG_DOUBLE__)
+ WRITE_MACRO_VALUE(__SIZEOF_LONG_DOUBLE__); 
+#endif
+
+#if defined(__SIZEOF_SIZE_T__)
+ WRITE_MACRO_VALUE(__SIZEOF_SIZE_T__); 
+#endif
+
+#if defined(__SIZEOF_WCHAR_T__)
+ WRITE_MACRO_VALUE(__SIZEOF_WCHAR_T__); 
+#endif
+
+#if defined(__SIZEOF_WINT_T__)
+ WRITE_MACRO_VALUE(__SIZEOF_WINT_T__); 
+#endif
+
+#if defined(__SIZEOF_PTRDIFF_T__)
+ WRITE_MACRO_VALUE(__SIZEOF_PTRDIFF_T__); 
+#endif
+
+#if defined(__BYTE_ORDER__)
+ WRITE_MACRO_VALUE(__BYTE_ORDER__); 
+#endif
+
+#if defined(__ORDER_LITTLE_ENDIAN__)
+ WRITE_MACRO_VALUE(__ORDER_LITTLE_ENDIAN__); 
+#endif
+
+#if defined(__ORDER_BIG_ENDIAN__)
+ WRITE_MACRO_VALUE(__ORDER_BIG_ENDIAN__); 
+#endif
+
+#if defined(__ORDER_PDP_ENDIAN__)
+ WRITE_MACRO_VALUE(__ORDER_PDP_ENDIAN__); 
+#endif
+
+#if defined(__FLOAT_WORD_ORDER__)
+ WRITE_MACRO_VALUE(__FLOAT_WORD_ORDER__); 
+#endif
+
+#if defined(__DEPRECATED)
+ WRITE_MACRO_VALUE(__DEPRECATED); 
+#endif
+
+#if defined(__EXCEPTIONS)
+ WRITE_MACRO_VALUE(__EXCEPTIONS); 
+#endif
+
+#if defined(__GXX_RTTI)
+ WRITE_MACRO_VALUE(__GXX_RTTI); 
+#endif
+
+#if defined(__USING_SJLJ_EXCEPTIONS__)
+ WRITE_MACRO_VALUE(__USING_SJLJ_EXCEPTIONS__); 
+#endif
+
+#if defined(__GXX_EXPERIMENTAL_CXX0X__)
+ WRITE_MACRO_VALUE(__GXX_EXPERIMENTAL_CXX0X__); 
+#endif
+
+#if defined(__GXX_WEAK__)
+ WRITE_MACRO_VALUE(__GXX_WEAK__); 
+#endif
+
+#if defined(__NEXT_RUNTIME__)
+ WRITE_MACRO_VALUE(__NEXT_RUNTIME__); 
+#endif
+
+#if defined(__LP64__)
+ WRITE_MACRO_VALUE(__LP64__); 
+#endif
+
+#if defined(_LP64)
+ WRITE_MACRO_VALUE(_LP64); 
+#endif
+
+#if defined(__SSP__)
+ WRITE_MACRO_VALUE(__SSP__); 
+#endif
+
+#if defined(__SSP_ALL__)
+ WRITE_MACRO_VALUE(__SSP_ALL__); 
+#endif
+
+#if defined(__SSP_STRONG__)
+ WRITE_MACRO_VALUE(__SSP_STRONG__); 
+#endif
+
+#if defined(__SSP_EXPLICIT__)
+ WRITE_MACRO_VALUE(__SSP_EXPLICIT__); 
+#endif
+
+#if defined(__SSP_EXPLICIT__)
+ WRITE_MACRO_VALUE(__SSP_EXPLICIT__); 
+#endif
+
+#if defined(__SANITIZE_ADDRESS__)
+ WRITE_MACRO_VALUE(__SANITIZE_ADDRESS__); 
+#endif
+
+#if defined(__SANITIZE_THREAD__)
+ WRITE_MACRO_VALUE(__SANITIZE_THREAD__); 
+#endif
+
+#if defined(__TIMESTAMP__)
+ WRITE_MACRO_VALUE(__TIMESTAMP__); 
+#endif
+
+#if defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1)
+ WRITE_MACRO_VALUE(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1); 
+#endif
+
+#if defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2)
+ WRITE_MACRO_VALUE(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2); 
+#endif
+
+#if defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4)
+ WRITE_MACRO_VALUE(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4); 
+#endif
+
+#if defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8)
+ WRITE_MACRO_VALUE(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8); 
+#endif
+
+#if defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_16)
+ WRITE_MACRO_VALUE(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_16); 
+#endif
+
+#if defined(__HAVE_SPECULATION_SAFE_VALUE)
+ WRITE_MACRO_VALUE(__HAVE_SPECULATION_SAFE_VALUE); 
+#endif
+
+#if defined(__GCC_HAVE_DWARF2_CFI_ASM)
+ WRITE_MACRO_VALUE(__GCC_HAVE_DWARF2_CFI_ASM); 
+#endif
+
+#if defined(__FP_FAST_FMA)
+ WRITE_MACRO_VALUE(__FP_FAST_FMA); 
+#endif
+
+#if defined(__FP_FAST_FMAF)
+ WRITE_MACRO_VALUE(__FP_FAST_FMAF); 
+#endif
+
+#if defined(__FP_FAST_FMAL)
+ WRITE_MACRO_VALUE(__FP_FAST_FMAL); 
+#endif
+
+#if defined(__FP_FAST_FMAF16)
+ WRITE_MACRO_VALUE(__FP_FAST_FMAF16); 
+#endif
+
+#if defined(__FP_FAST_FMAF32)
+ WRITE_MACRO_VALUE(__FP_FAST_FMAF32); 
+#endif
+
+#if defined(__FP_FAST_FMAF64)
+ WRITE_MACRO_VALUE(__FP_FAST_FMAF64); 
+#endif
+
+#if defined(__FP_FAST_FMAF128)
+ WRITE_MACRO_VALUE(__FP_FAST_FMAF128); 
+#endif
+
+#if defined(__FP_FAST_FMAF32X)
+ WRITE_MACRO_VALUE(__FP_FAST_FMAF32X); 
+#endif
+
+#if defined(__FP_FAST_FMAF64X)
+ WRITE_MACRO_VALUE(__FP_FAST_FMAF64X); 
+#endif
+
+#if defined(__FP_FAST_FMAF128X)
+ WRITE_MACRO_VALUE(__FP_FAST_FMAF128X); 
+#endif
+
+#if defined(__STDC_WANT_IEC_60559_TYPES_EXT__)
+ WRITE_MACRO_VALUE(__STDC_WANT_IEC_60559_TYPES_EXT__); 
+#endif
+
+#if defined(__GCC_IEC_559)
+ WRITE_MACRO_VALUE(__GCC_IEC_559); 
+#endif
+
+#if defined(__GCC_IEC_559_COMPLEX)
+ WRITE_MACRO_VALUE(__GCC_IEC_559_COMPLEX); 
+#endif
+
+#if defined(__NO_MATH_ERRNO__)
+ WRITE_MACRO_VALUE(__NO_MATH_ERRNO__); 
+#endif
+
+#if defined(__RECIPROCAL_MATH__)
+ WRITE_MACRO_VALUE(__RECIPROCAL_MATH__); 
+#endif
+
+#if defined(__NO_SIGNED_ZEROS__)
+ WRITE_MACRO_VALUE(__NO_SIGNED_ZEROS__); 
+#endif
+
+#if defined(__NO_TRAPPING_MATH__)
+ WRITE_MACRO_VALUE(__NO_TRAPPING_MATH__); 
+#endif
+
+#if defined(__ASSOCIATIVE_MATH__)
+ WRITE_MACRO_VALUE(__ASSOCIATIVE_MATH__); 
+#endif
+
+#if defined(__ROUNDING_MATH__)
+ WRITE_MACRO_VALUE(__ROUNDING_MATH__); 
+#endif
+
+#if defined(__GNUC_EXECUTION_CHARSET_NAME)
+ WRITE_MACRO_VALUE(__GNUC_EXECUTION_CHARSET_NAME); 
+#endif
+
+#if defined(__GNUC_WIDE_EXECUTION_CHARSET_NAME)
+ WRITE_MACRO_VALUE(__GNUC_WIDE_EXECUTION_CHARSET_NAME); 
+#endif
+
+#if defined(__FILE__)
+ WRITE_MACRO_VALUE(__FILE__); 
+#endif
+
+#if defined(__LINE__)
+ WRITE_MACRO_VALUE(__LINE__); 
+#endif
+
+#if defined(__func__)
+ WRITE_MACRO_VALUE(__func__); 
+#endif
+
+#if defined(__FUNCTION__)
+ WRITE_MACRO_VALUE(__FUNCTION__); 
+#endif
+
+#if defined(__DATE__)
+ WRITE_MACRO_VALUE(__DATE__); 
+#endif
+
+#if defined(__TIME__)
+ WRITE_MACRO_VALUE(__TIME__); 
+#endif
+
+#if defined(__STDC__)
+ WRITE_MACRO_VALUE(__STDC__); 
+#endif
+
+#if defined(__STDC_VERSION__)
+ WRITE_MACRO_VALUE(__STDC_VERSION__); 
+#endif
+
+#if defined(__STDC_HOSTED__)
+ WRITE_MACRO_VALUE(__STDC_HOSTED__); 
+#endif
+
+#if defined(__cplusplus)
+ WRITE_MACRO_VALUE(__cplusplus); 
+#endif
+
+#if defined(__OBJC__)
+ WRITE_MACRO_VALUE(__OBJC__); 
+#endif
+
+#if defined(__ASSEMBLER__)
+ WRITE_MACRO_VALUE(__ASSEMBLER__); 
 #endif
 }; 
 

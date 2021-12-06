@@ -327,6 +327,15 @@ static void decimal_mantisse__set_eof_r(decimal_t * d_r) {
   }; 
 }; 
 
+static void decimal_mantisse__set_all_digits_r(uint8_t * d_mantisse_r, const uint8_t d_mantisse_len, const uint8_t digit) { 
+  uint8_t * p;
+  p = d_mantisse_r; 
+  for (int i = 0; i < d_mantisse_len; i++) { 
+    *p = digit; 
+    p++; 
+  }; 
+}; 
+
 static void decimal_mantisse__set_zero_r(decimal_t * d_r) { 
   int i; 
   for (i = DECIMAL_DIGITS_INDEX; i <= DECIMAL_FIXED_POINT_SIZE; i++) { 
@@ -389,6 +398,40 @@ static void decimal_status__if_ZERO_then_set_EPSILON_status_r(decimal_t * d_r) {
       ((*d_r)[DECIMAL_FIXED_POINT_SIZE    ] == DECIMAL_EOF_BYTE)) { 
     (*d_r)[0] = ((*d_r)[0] == DECIMAL_STATUS__POS) ? DECIMAL_STATUS__POS_EPSILON : DECIMAL_STATUS__NEG_EPSILON; 
   }; 
+}; 
+
+uint8_t decimal_status__neg(decimal_env_t * decimal_env, const uint8_t d_status) { 
+  uint8_t d_status_neg; 
+  d_status_neg = d_status; 
+  switch (d_status) { 
+  case DECIMAL_STATUS__INVALID                        : goto label__exit; 
+  case DECIMAL_STATUS__ZERO                           : goto label__exit; 
+  case DECIMAL_STATUS__INFINI                         : goto label__exit; 
+  case DECIMAL_STATUS__POS                            : d_status_neg = DECIMAL_STATUS__NEG        ; goto label__exit;
+  case DECIMAL_STATUS__NEG                            : d_status_neg = DECIMAL_STATUS__POS        ; goto label__exit; 
+  case DECIMAL_STATUS__POS_INFINI                     : d_status_neg = DECIMAL_STATUS__NEG_INFINI ; goto label__exit;
+  case DECIMAL_STATUS__NEG_INFINI                     : d_status_neg = DECIMAL_STATUS__POS_INFINI ; goto label__exit;
+  case DECIMAL_STATUS__POS_EPSILON                    : d_status_neg = DECIMAL_STATUS__NEG_EPSILON; goto label__exit;
+  case DECIMAL_STATUS__NEG_EPSILON                    : d_status_neg = DECIMAL_STATUS__POS_EPSILON; goto label__exit;
+  case DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE: goto label__exit;  
+  default: goto error_label__not_listed_status; 
+  }; 
+  
+  assert(false); 
+  
+ label__exit: { 
+    decimal_env -> error_id = DECIMAL__OK; 
+    return d_status_neg; 
+  }; 
+
+ error_label__not_listed_status: { 
+    const char * status_cstr = decimal_status__cstr(d_status); 
+    decimal_env -> error_id = DECIMAL__STATUS_NOT_LISTED_IN_SWITCH; 
+    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Status not listed in switch: %d [%s]", ((int)d_status), status_cstr); 
+    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
+    return DECIMAL_STATUS__INVALID; 
+  }; 
+  
 }; 
 
 
@@ -673,7 +716,7 @@ RETURN_TYPE_T decimal__make_b(decimal_env_t * decimal_env, const int buffer_size
   
 }; 
 
-RETURN_TYPE_T decimal__reset_r(decimal_env_t * decimal_env, decimal_t * d_r) { 
+RETURN_TYPE_T decimal__reset_r(const decimal_env_t * decimal_env, decimal_t * d_r) { 
   decimal_mantisse__set_eof_r(d_r); 
 #ifdef RETURN_ERROR 
   return DECIMAL__OK; 
@@ -682,7 +725,7 @@ RETURN_TYPE_T decimal__reset_r(decimal_env_t * decimal_env, decimal_t * d_r) {
 #endif 
 }; 
 
-extern RETURN_TYPE_T decimal__zero_r(decimal_env_t * this, decimal_t * d_r) {
+extern RETURN_TYPE_T decimal__zero_r(const decimal_env_t * this, decimal_t * d_r) {
   decimal_mantisse__set_eof_r(d_r); 
   (*d_r)[DECIMAL_INT_INDEX] = 0; 
   (*d_r)[DECIMAL_STATUS_INDEX] = DECIMAL_STATUS__ZERO; 
@@ -693,8 +736,158 @@ extern RETURN_TYPE_T decimal__zero_r(decimal_env_t * this, decimal_t * d_r) {
 #endif 
 }; 
 
+extern RETURN_TYPE_T decimal__invalid_r(const decimal_env_t * this, decimal_t * d_r) { 
+  (*d_r)[DECIMAL_STATUS_INDEX] = DECIMAL_STATUS__INVALID; 
+#ifdef RETURN_ERROR 
+  return DECIMAL__OK; 
+#else 
+  return d_r; 
+#endif 
+}; 
+
+extern RETURN_TYPE_T decimal__pos_epsilon_r(const decimal_env_t * this, decimal_t * d_r) { 
+  (*d_r)[DECIMAL_STATUS_INDEX] = DECIMAL_STATUS__POS_EPSILON; 
+#ifdef RETURN_ERROR 
+  return DECIMAL__OK; 
+#else 
+  return d_r; 
+#endif 
+}; 
+
+extern RETURN_TYPE_T decimal__neg_epsilon_r(const decimal_env_t * this, decimal_t * d_r) { 
+  (*d_r)[DECIMAL_STATUS_INDEX] = DECIMAL_STATUS__NEG_EPSILON; 
+#ifdef RETURN_ERROR 
+  return DECIMAL__OK; 
+#else 
+  return d_r; 
+#endif 
+}; 
+
+extern RETURN_TYPE_T decimal__pos_infini_r(const decimal_env_t * this, decimal_t * d_r) { 
+  (*d_r)[DECIMAL_STATUS_INDEX] = DECIMAL_STATUS__POS_INFINI; 
+#ifdef RETURN_ERROR 
+  return DECIMAL__OK; 
+#else 
+  return d_r; 
+#endif 
+}; 
+
+extern RETURN_TYPE_T decimal__neg_infini_r(const decimal_env_t * this, decimal_t * d_r) { 
+  (*d_r)[DECIMAL_STATUS_INDEX] = DECIMAL_STATUS__NEG_INFINI; 
+#ifdef RETURN_ERROR 
+  return DECIMAL__OK; 
+#else 
+  return d_r; 
+#endif 
+}; 
+
+extern RETURN_TYPE_T decimal__max_value_r(const decimal_env_t * this, decimal_t * d_r) { 
+  decimal_mantisse__set_all_digits_r((*d_r) + DECIMAL_INT_INDEX, DECIMAL_DIGITS_SIZE, DECIMAL_BASE_MINUS1); 
+  (*d_r)[DECIMAL_STATUS_INDEX] = DECIMAL_STATUS__POS; 
+#ifdef RETURN_ERROR 
+  return DECIMAL__OK; 
+#else 
+  return d_r; 
+#endif 
+}; 
+
+extern RETURN_TYPE_T decimal__min_value_r(const decimal_env_t * this, decimal_t * d_r) { 
+  decimal_mantisse__set_all_digits_r((*d_r) + DECIMAL_INT_INDEX, DECIMAL_DIGITS_SIZE, DECIMAL_BASE_MINUS1); 
+  (*d_r)[DECIMAL_STATUS_INDEX] = DECIMAL_STATUS__NEG; 
+#ifdef RETURN_ERROR 
+  return DECIMAL__OK; 
+#else 
+  return d_r; 
+#endif 
+}; 
+
+extern RETURN_TYPE_T decimal__cast_from_uintmax_r(decimal_env_t * this, decimal_t * d_r, const uintmax_t uintmax_given) { 
+  //dprintf(STDERR_FILENO, "uintmax_given = " "%" __UINTMAX_FMTu__ "\n", uintmax_given); 
+  if (0 == uintmax_given) return decimal__zero_r(this, d_r); 
+  
+  decimal_mantisse__set_eof_r(d_r); 
+  
+  uint8_t * d_mantisse_r = (*d_r) + DECIMAL_INT_INDEX; 
+  const uint8_t d_mantisse_len = DECIMAL_INT_SIZE; 
+  uint8_t * p = d_mantisse_r; 
+  uintmax_t quotient = uintmax_given; 
+  for (uint8_t i = 0; i < d_mantisse_len; i++) { 
+    //dprintf(STDERR_FILENO, "quotient = " "%" __UINTMAX_FMTu__ "\n", quotient); 
+    *p = DECIMAL_BASE__GET_REMAINDER(quotient); 
+    quotient = DECIMAL_BASE__GET_QUOTIENT(quotient); 
+    p++; 
+    if (0 == quotient) break; 
+  }; 
+  if (0 != quotient) { 
+    (*d_r)[DECIMAL_STATUS_INDEX] = DECIMAL_STATUS__POS_INFINI; 
+    return DECIMAL__INTEGER_TOO_LARGE; 
+  }; 
+  
+  (*d_r)[DECIMAL_STATUS_INDEX] = DECIMAL_STATUS__POS; 
+  return DECIMAL__OK; 
+}; 
+
+extern RETURN_TYPE_T decimal__cast_from_uint64_r(decimal_env_t * this, decimal_t * d_r, const uint64_t uint64_given) { 
+  return decimal__cast_from_uintmax_r(this, d_r, uint64_given); 
+}; 
+
+extern RETURN_TYPE_T decimal__cast_from_uint32_r(decimal_env_t * this, decimal_t * d_r, const uint32_t uint32_given) { 
+  return decimal__cast_from_uintmax_r(this, d_r, uint32_given); 
+}; 
+
+extern RETURN_TYPE_T decimal__cast_from_uint16_r(decimal_env_t * this, decimal_t * d_r, const uint16_t uint16_given) { 
+  return decimal__cast_from_uintmax_r(this, d_r, uint16_given); 
+}; 
+
+extern RETURN_TYPE_T decimal__cast_from_uint8_r(decimal_env_t * this, decimal_t * d_r, const uint8_t uint8_given) { 
+  return decimal__cast_from_uintmax_r(this, d_r, uint8_given); 
+}; 
+
+extern RETURN_TYPE_T decimal__cast_from_uint_r(decimal_env_t * this, decimal_t * d_r, const uint_t uint_given) { 
+  return decimal__cast_from_uintmax_r(this, d_r, uint_given); 
+}; 
+
+extern RETURN_TYPE_T decimal__cast_from_intmax_r(decimal_env_t * this, decimal_t * d_r, const intmax_t intmax_given) { 
+  if (0 == intmax_given) return decimal__zero_r(this, d_r); 
+  if (0  < intmax_given) return decimal__cast_from_uintmax_r(this, d_r, intmax_given); 
+  
+  const int_decimal_error_t error_id = decimal__cast_from_uintmax_r(this, d_r, -intmax_given); 
+  if (error_id < 0) return error_id; 
+  
+  const uint8_t d_status       = (*d_r)[DECIMAL_STATUS_INDEX]; 
+  const uint8_t d_status_neg   = decimal_status__neg(this, d_status); 
+  (*d_r)[DECIMAL_STATUS_INDEX] = d_status_neg; 
+#ifdef RETURN_ERROR 
+  return error_id; 
+#else 
+  return (0 <= error_id) ? d_r : NULL; 
+#endif 
+}; 
+
+extern RETURN_TYPE_T decimal__cast_from_int64_r(decimal_env_t * this, decimal_t * d_r, const int64_t int64_given) { 
+  return decimal__cast_from_intmax_r(this, d_r, int64_given); 
+}; 
+
+extern RETURN_TYPE_T decimal__cast_from_int32_r(decimal_env_t * this, decimal_t * d_r, const int32_t int32_given) { 
+  return decimal__cast_from_intmax_r(this, d_r, int32_given); 
+}; 
+
+extern RETURN_TYPE_T decimal__cast_from_int16_r(decimal_env_t * this, decimal_t * d_r, const int16_t int16_given) { 
+  return decimal__cast_from_intmax_r(this, d_r, int16_given); 
+}; 
+
+extern RETURN_TYPE_T decimal__cast_from_int8_r(decimal_env_t * this, decimal_t * d_r, const int8_t int8_given) { 
+  return decimal__cast_from_intmax_r(this, d_r, int8_given); 
+}; 
+
+extern RETURN_TYPE_T decimal__cast_from_int_r(decimal_env_t * this, decimal_t * d_r, const int int_given) { 
+  return decimal__cast_from_intmax_r(this, d_r, int_given); 
+}; 
+
+
+#if 0 
 //RETURN_TYPE_T decimal__make_int_r(decimal_t * d_r, const int n_given) { 
-RETURN_TYPE_T decimal__cast_from_int_r(decimal_env_t * decimal_env, decimal_t * d_r, const int n_given) { 
+static RETURN_TYPE_T decimal__cast_from_int_r__old001(decimal_env_t * decimal_env, decimal_t * d_r, const int n_given) { 
   decimal_mantisse__set_eof_r(d_r); 
   
   if (n_given == 0) { 
@@ -723,11 +916,178 @@ RETURN_TYPE_T decimal__cast_from_int_r(decimal_env_t * decimal_env, decimal_t * 
   
   return DECIMAL__OK; 
 }; 
+#endif 
 
 
 RETURN_TYPE_T decimal__cast_from_float_r(decimal_env_t * this, decimal_t * d_r, const float f_given) { 
-  const float f  = (f_given < 0) ? -f_given : f_given; 
-  const float ff = floorf(f); 
+  const float  f_pos       = (f_given < 0) ? -f_given : f_given; 
+  const int    f_pos_class = fpclassify(f_pos); 
+  if (FP_ZERO     == f_pos_class) return decimal__zero_r(this, d_r); 
+  const int8_t f_sign      = (f_given < 0) ? -1 : 1; 
+  if (f_pos <= __FLT_EPSILON__) return (f_sign > 0) ? decimal__pos_epsilon_r(this, d_r) : decimal__neg_epsilon_r(this, d_r); 
+  if (FP_INFINITE == f_pos_class) return (f_sign > 0) ? decimal__pos_infini_r(this, d_r) : decimal__neg_infini_r(this, d_r); 
+  if (FP_NAN      == f_pos_class) return decimal__invalid_r(this, d_r); 
+  
+  assert(isfinite(f_pos)); 
+  
+  //dprintf(STDERR_FILENO, "f_pos = " "%Lf" "\n", (long double) f_pos); 
+  const uintmax_t f_int_part = (uintmax_t) f_pos; 
+  //dprintf(STDERR_FILENO, "f_int_part = " "%" __UINTMAX_FMTu__ "\n", f_int_part); 
+  const int_decimal_error_t error_id = decimal__cast_from_uintmax_r(this, d_r, f_int_part); 
+  if (error_id < 0) return error_id; 
+  
+  int8_t all_digits_null_huh = (0 == f_int_part); 
+
+  float f_iter = f_pos - (float)f_int_part; 
+  float f_epsilon = __FLT_EPSILON__; 
+  int index = DECIMAL_INT_INDEX; 
+  for (;;) { 
+    //dprintf(STDERR_FILENO, "f_iter = " "%Lf" "\n", (long double) f_iter); 
+    //dputs_array(STDERR_FILENO, __func__, ": ", "index = ", int_string__stack(index), "\n"); 
+    if (FP_ZERO == fpclassify(f_iter)) break; 
+    //if (f_iter <= __FLT_EPSILON__) break; 
+    if (f_iter <= f_epsilon) break; 
+    index--; 
+    if (index < DECIMAL_DIGITS_INDEX_FIRST) break; 
+    f_iter    *= DECIMAL_BASE; 
+    f_epsilon *= DECIMAL_BASE; 
+    //dprintf(STDERR_FILENO, "*f_iter = " "%Lf" "\n", (long double) f_iter); 
+    //const uintmax_t f_iter_int = (uintmax_t) f_iter; 
+    //const int digit = (int) floorf(f_iter); 
+    //const uint8_t digit = f_iter_int; 
+    const uint8_t digit = (uint8_t) f_iter; 
+    //dprintf(STDERR_FILENO, "digit = " "%" __UINT8_FMTu__ "\n", digit); 
+    all_digits_null_huh &= (0 == digit); 
+    //dputs_array(STDERR_FILENO, __func__, ": ", "digit = ", int_string__stack(digit), "\n"); 
+    (*d_r)[index] = digit; 
+    f_iter -= digit; 
+  }; 
+  
+  if (all_digits_null_huh) { 
+    (*d_r)[DECIMAL_STATUS_INDEX] = (f_sign < 0) ? DECIMAL_STATUS__NEG_EPSILON : DECIMAL_STATUS__POS_EPSILON; 
+  } 
+  else { 
+    (*d_r)[DECIMAL_STATUS_INDEX] = (f_sign < 0) ? DECIMAL_STATUS__NEG : DECIMAL_STATUS__POS; 
+  }; 
+  
+  return DECIMAL__OK; 
+}; 
+
+RETURN_TYPE_T decimal__cast_from_double_r(decimal_env_t * this, decimal_t * d_r, const double f_given) { 
+  const double  f_pos       = (f_given < 0) ? -f_given : f_given; 
+  const int    f_pos_class = fpclassify(f_pos); 
+  if (FP_ZERO     == f_pos_class) return decimal__zero_r(this, d_r); 
+  const int8_t f_sign      = (f_given < 0) ? -1 : 1; 
+  if (f_pos <= __DBL_EPSILON__) return (f_sign > 0) ? decimal__pos_epsilon_r(this, d_r) : decimal__neg_epsilon_r(this, d_r); 
+  if (FP_INFINITE == f_pos_class) return (f_sign > 0) ? decimal__pos_infini_r(this, d_r) : decimal__neg_infini_r(this, d_r); 
+  if (FP_NAN      == f_pos_class) return decimal__invalid_r(this, d_r); 
+  
+  assert(isfinite(f_pos)); 
+  
+  //dprintf(STDERR_FILENO, "f_pos = " "%Lf" "\n", (long double) f_pos); 
+  const uintmax_t f_int_part = (uintmax_t) f_pos; 
+  //dprintf(STDERR_FILENO, "f_int_part = " "%" __UINTMAX_FMTu__ "\n", f_int_part); 
+  const int_decimal_error_t error_id = decimal__cast_from_uintmax_r(this, d_r, f_int_part); 
+  if (error_id < 0) return error_id; 
+  
+  int8_t all_digits_null_huh = (0 == f_int_part); 
+
+  double f_iter = f_pos - (double)f_int_part; 
+  double f_epsilon = __DBL_EPSILON__; 
+  int index = DECIMAL_INT_INDEX; 
+  for (;;) { 
+    //dprintf(STDERR_FILENO, "f_iter = " "%Lf" "\n", (long double) f_iter); 
+    //dputs_array(STDERR_FILENO, __func__, ": ", "index = ", int_string__stack(index), "\n"); 
+    if (FP_ZERO == fpclassify(f_iter)) break; 
+    //if (f_iter <= __DBL_EPSILON__) break; 
+    if (f_iter <= f_epsilon) break; 
+    index--; 
+    if (index < DECIMAL_DIGITS_INDEX_FIRST) break; 
+    f_iter    *= DECIMAL_BASE; 
+    f_epsilon *= DECIMAL_BASE; 
+    //dprintf(STDERR_FILENO, "*f_iter = " "%Lf" "\n", (long double) f_iter); 
+    //const uintmax_t f_iter_int = (uintmax_t) f_iter; 
+    //const int digit = (int) floorf(f_iter); 
+    //const uint8_t digit = f_iter_int; 
+    const uint8_t digit = (uint8_t) f_iter; 
+    //dprintf(STDERR_FILENO, "digit = " "%" __UINT8_FMTu__ "\n", digit); 
+    all_digits_null_huh &= (0 == digit); 
+    //dputs_array(STDERR_FILENO, __func__, ": ", "digit = ", int_string__stack(digit), "\n"); 
+    (*d_r)[index] = digit; 
+    f_iter -= digit; 
+  }; 
+  
+  if (all_digits_null_huh) { 
+    (*d_r)[DECIMAL_STATUS_INDEX] = (f_sign < 0) ? DECIMAL_STATUS__NEG_EPSILON : DECIMAL_STATUS__POS_EPSILON; 
+  } 
+  else { 
+    (*d_r)[DECIMAL_STATUS_INDEX] = (f_sign < 0) ? DECIMAL_STATUS__NEG : DECIMAL_STATUS__POS; 
+  }; 
+  
+  return DECIMAL__OK; 
+}; 
+
+RETURN_TYPE_T decimal__cast_from_long_double_r(decimal_env_t * this, decimal_t * d_r, const long double f_given) { 
+  const long double  f_pos       = (f_given < 0) ? -f_given : f_given; 
+  const int    f_pos_class = fpclassify(f_pos); 
+  if (FP_ZERO     == f_pos_class) return decimal__zero_r(this, d_r); 
+  const int8_t f_sign      = (f_given < 0) ? -1 : 1; 
+  if (f_pos <= __LDBL_EPSILON__) return (f_sign > 0) ? decimal__pos_epsilon_r(this, d_r) : decimal__neg_epsilon_r(this, d_r); 
+  if (FP_INFINITE == f_pos_class) return (f_sign > 0) ? decimal__pos_infini_r(this, d_r) : decimal__neg_infini_r(this, d_r); 
+  if (FP_NAN      == f_pos_class) return decimal__invalid_r(this, d_r); 
+  
+  assert(isfinite(f_pos)); 
+  
+  //dprintf(STDERR_FILENO, "f_pos = " "%Lf" "\n", (long double) f_pos); 
+  const uintmax_t f_int_part = (uintmax_t) f_pos; 
+  //dprintf(STDERR_FILENO, "f_int_part = " "%" __UINTMAX_FMTu__ "\n", f_int_part); 
+  const int_decimal_error_t error_id = decimal__cast_from_uintmax_r(this, d_r, f_int_part); 
+  if (error_id < 0) return error_id; 
+  
+  int8_t all_digits_null_huh = (0 == f_int_part); 
+
+  long double f_iter = f_pos - (long double)f_int_part; 
+  long double f_epsilon = __LDBL_EPSILON__; 
+  int index = DECIMAL_INT_INDEX; 
+  for (;;) { 
+    //dprintf(STDERR_FILENO, "f_iter = " "%Lf" "\n", (long double) f_iter); 
+    //dputs_array(STDERR_FILENO, __func__, ": ", "index = ", int_string__stack(index), "\n"); 
+    if (FP_ZERO == fpclassify(f_iter)) break; 
+    //if (f_iter <= __LDBL_EPSILON__) break; 
+    if (f_iter <= f_epsilon) break; 
+    index--; 
+    if (index < DECIMAL_DIGITS_INDEX_FIRST) break; 
+    f_iter    *= DECIMAL_BASE; 
+    f_epsilon *= DECIMAL_BASE; 
+    //dprintf(STDERR_FILENO, "*f_iter = " "%Lf" "\n", (long double) f_iter); 
+    //const uintmax_t f_iter_int = (uintmax_t) f_iter; 
+    //const int digit = (int) floorf(f_iter); 
+    //const uint8_t digit = f_iter_int; 
+    const uint8_t digit = (uint8_t) f_iter; 
+    //dprintf(STDERR_FILENO, "digit = " "%" __UINT8_FMTu__ "\n", digit); 
+    all_digits_null_huh &= (0 == digit); 
+    //dputs_array(STDERR_FILENO, __func__, ": ", "digit = ", int_string__stack(digit), "\n"); 
+    (*d_r)[index] = digit; 
+    f_iter -= digit; 
+  }; 
+  
+  if (all_digits_null_huh) { 
+    (*d_r)[DECIMAL_STATUS_INDEX] = (f_sign < 0) ? DECIMAL_STATUS__NEG_EPSILON : DECIMAL_STATUS__POS_EPSILON; 
+  } 
+  else { 
+    (*d_r)[DECIMAL_STATUS_INDEX] = (f_sign < 0) ? DECIMAL_STATUS__NEG : DECIMAL_STATUS__POS; 
+  }; 
+  
+  return DECIMAL__OK; 
+}; 
+
+
+#if 0 
+static RETURN_TYPE_T decimal__cast_from_float_r__old001(decimal_env_t * this, decimal_t * d_r, const float f_given) { 
+  if (0.0f == f_given) return decimal__zero_r(this, d_r); 
+  const int8_t f_sign = (f_given < 0) ? -1 : 1; 
+  const float  f_pos  = (f_given < 0) ? -f_given : f_given; 
+  const float  ff = floorf(f_pos); 
   const int   n  = (f_given < 0) ? -(int) ff : (int) ff; 
   //dputs_array(STDERR_FILENO, __func__, ": ", "n = ", int_string__stack(n), "\n"); 
   int_decimal_error_t error_id; 
@@ -736,7 +1096,7 @@ RETURN_TYPE_T decimal__cast_from_float_r(decimal_env_t * this, decimal_t * d_r, 
 
   //dputs_array(STDERR_FILENO, __func__, ": ", "HERE ", "\n"); 
   
-  float f_iter = f - ff; 
+  float f_iter = f_pos - ff; 
   int index = DECIMAL_INT_INDEX; 
   for (;;) { 
     //dputs_array(STDERR_FILENO, __func__, ": ", "index = ", int_string__stack(index), "\n"); 
@@ -756,6 +1116,8 @@ RETURN_TYPE_T decimal__cast_from_float_r(decimal_env_t * this, decimal_t * d_r, 
   
   return DECIMAL__OK; 
 }; 
+#endif 
+
 
 
 #include "decimal_print.ci" 

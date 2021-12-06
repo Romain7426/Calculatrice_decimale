@@ -1,41 +1,12 @@
 RETURN_TYPE_T decimal__neg_r(decimal_env_t * decimal_env, decimal_t * d_r) { 
-  const uint8_t d_status = (*d_r)[DECIMAL_STATUS_INDEX]; 
-  switch (d_status) { 
-  case DECIMAL_STATUS__INVALID                        : goto label__exit; 
-  case DECIMAL_STATUS__ZERO                           : goto label__exit; 
-  case DECIMAL_STATUS__INFINI                         : goto label__exit; 
-  case DECIMAL_STATUS__POS                            : (*d_r)[0] = DECIMAL_STATUS__NEG        ; goto label__exit;
-  case DECIMAL_STATUS__NEG                            : (*d_r)[0] = DECIMAL_STATUS__POS        ; goto label__exit; 
-  case DECIMAL_STATUS__POS_INFINI                     : (*d_r)[0] = DECIMAL_STATUS__NEG_INFINI ; goto label__exit;
-  case DECIMAL_STATUS__NEG_INFINI                     : (*d_r)[0] = DECIMAL_STATUS__POS_INFINI ; goto label__exit;
-  case DECIMAL_STATUS__POS_EPSILON                    : (*d_r)[0] = DECIMAL_STATUS__NEG_EPSILON; goto label__exit;
-  case DECIMAL_STATUS__NEG_EPSILON                    : (*d_r)[0] = DECIMAL_STATUS__POS_EPSILON; goto label__exit;
-  case DECIMAL_STATUS__DEVELOPPEMENT_LIMITE_NECESSAIRE: goto label__exit;  
-  default: goto error_label__not_listed_status; 
-  }; 
-  
-  assert(false); 
-  
- label__exit: { 
+  const uint8_t d_status     = (*d_r)[DECIMAL_STATUS_INDEX]; 
+  const uint8_t d_status_neg = decimal_status__neg(decimal_env, d_status); 
+  (*d_r)[DECIMAL_STATUS_INDEX] = d_status_neg; 
 #ifdef RETURN_ERROR 
-    return DECIMAL__OK; 
+  return decimal_env -> error_id; 
 #else 
-    return d_r; 
+  return (0 <= decimal_env -> error_id) ? d_r : NULL; 
 #endif 
-  };
-
- error_label__not_listed_status: { 
-    const char * status_cstr = decimal_status__cstr(d_status); 
-    decimal_env -> error_id = DECIMAL__STATUS_NOT_LISTED_IN_SWITCH; 
-    snprintf(decimal_env -> error_str, DECIMAL_ENV__ERROR_BUFFER_SIZE, "Status not listed in switch: %d [%s]", ((int)d_status), status_cstr); 
-    if (decimal_env -> stdlog_d > 0) { dprintf(decimal_env -> stdlog_d, "{" __FILE__ ":" STRINGIFY(__LINE__) ":<%s()>}: Error: " "%s" "\n", __func__, decimal_env -> error_str); }; 
-#ifdef RETURN_ERROR 
-    return decimal_env -> error_id; 
-#else 
-    return NULL; 
-#endif 
-  }; 
-  
 }; 
 
 

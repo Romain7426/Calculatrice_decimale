@@ -162,6 +162,7 @@ extern void             decimal_example__print(const int stduser_d);
   /* Warnings */ \
   X(DECIMAL__NULL_STRUCT, = 1) \
   X(DECIMAL__EMPTY_STRUCTURE, ) \
+  X(DECIMAL__INTEGER_TOO_LARGE, ) \
   X(DECIMAL__FILLING_NOT_COMPLETED, ) \
   X(DECIMAL__HAS_BREAKING_UNCONSISTENCIES, ) \
   X(DECIMAL__HAS_NON_BREAKING_UNCONSISTENCIES, ) \
@@ -315,7 +316,7 @@ extern       int     decimal_status__value_is_a_status_huh(const uint8_t status)
 
 //* DECIMAL_T */
 
-enum {  DECIMAL_SIZE             =                256 }; 
+enum {  DECIMAL_SIZE             =                256 }; // TODO XXX FIXME: On a 8-bit compiler, that gonna fail. 
 enum {  DECIMAL_FIXED_POINT_SIZE =                200 }; 
 #define DECIMAL_BASE_MACRO                        100 
 enum {  DECIMAL_BASE             = DECIMAL_BASE_MACRO }; 
@@ -340,19 +341,19 @@ enum {  DECIMAL_BASE             = DECIMAL_BASE_MACRO };
 #define DECIMAL_BASE__GET_REMAINDER DECIMAL_BASE_GENERIC__GET_REMAINDER 
 #endif 
 
-extern const uint16_t DECIMAL_SIZE__compiled_value; 
+extern const uint16_t DECIMAL_SIZE__compiled_value; // TODO FIXME XXX: 16-bit value. 
 extern const uint8_t  DECIMAL_FIXED_POINT_SIZE__compiled_value; 
 extern const uint8_t  DECIMAL_BASE__compiled_value; 
 
 static void decimal_struct__check_and_assert(void) { 
   assert(DECIMAL_SIZE <= UINT8_MAX + 1); 
-  assert(DECIMAL_FIXED_POINT_SIZE < DECIMAL_SIZE); 
+  assert(DECIMAL_FIXED_POINT_SIZE < DECIMAL_SIZE); // Meaning that «DECIMAL_INT_INDEX» is «> 0». 
   assert(DECIMAL_BASE < UINT8_MAX); 
-
+  
   assert(DECIMAL_SIZE > 0); 
   assert(DECIMAL_FIXED_POINT_SIZE > 0); 
   assert(DECIMAL_BASE > 1); 
-
+  
   assert(DECIMAL_SIZE             == DECIMAL_SIZE__compiled_value            ); 
   assert(DECIMAL_FIXED_POINT_SIZE == DECIMAL_FIXED_POINT_SIZE__compiled_value); 
   assert(DECIMAL_BASE             == DECIMAL_BASE__compiled_value            ); 
@@ -401,11 +402,31 @@ static void decimal__check_and_assert(void) {
 //extern RETURN_TYPE_T decimal__make_r          (decimal_env_t * this, decimal_t * d_r); // RL: Please use 'reset'. 
 extern RETURN_TYPE_T decimal__make_b          (decimal_env_t * this, const int buffer_size, uint8_t * buffer, int * buffer_size_used_r); 
 
-extern RETURN_TYPE_T decimal__reset_r         (decimal_env_t * this, decimal_t * d_r); 
+extern RETURN_TYPE_T decimal__reset_r         (const decimal_env_t * this, decimal_t * d_r); 
 
-extern RETURN_TYPE_T decimal__zero_r          (decimal_env_t * this, decimal_t * d_r); 
-extern RETURN_TYPE_T decimal__cast_from_int_r (decimal_env_t * this, decimal_t * d_r, const int n_given); 
-extern RETURN_TYPE_T decimal__cast_from_float_r(decimal_env_t * this, decimal_t * d_r, const float f_given); 
+extern RETURN_TYPE_T decimal__zero_r            (const decimal_env_t * this, decimal_t * d_r); 
+extern RETURN_TYPE_T decimal__max_value_r       (const decimal_env_t * this, decimal_t * d_r); 
+extern RETURN_TYPE_T decimal__min_value_r       (const decimal_env_t * this, decimal_t * d_r); 
+extern RETURN_TYPE_T decimal__pos_epsilon_r     (const decimal_env_t * this, decimal_t * d_r); 
+extern RETURN_TYPE_T decimal__neg_epsilon_r     (const decimal_env_t * this, decimal_t * d_r); 
+extern RETURN_TYPE_T decimal__pos_infini_r      (const decimal_env_t * this, decimal_t * d_r); 
+extern RETURN_TYPE_T decimal__neg_infini_r      (const decimal_env_t * this, decimal_t * d_r); 
+extern RETURN_TYPE_T decimal__invalid_r         (const decimal_env_t * this, decimal_t * d_r); 
+extern RETURN_TYPE_T decimal__cast_from_int_r    (      decimal_env_t * this, decimal_t * d_r, const int           int_given); 
+extern RETURN_TYPE_T decimal__cast_from_uint_r   (      decimal_env_t * this, decimal_t * d_r, const uint         uint_given); 
+extern RETURN_TYPE_T decimal__cast_from_uint8_r  (      decimal_env_t * this, decimal_t * d_r, const uint8_t     uint8_given); 
+extern RETURN_TYPE_T decimal__cast_from_uint16_r (      decimal_env_t * this, decimal_t * d_r, const uint16_t   uint16_given); 
+extern RETURN_TYPE_T decimal__cast_from_uint32_r (      decimal_env_t * this, decimal_t * d_r, const uint32_t   uint32_given); 
+extern RETURN_TYPE_T decimal__cast_from_uint64_r (      decimal_env_t * this, decimal_t * d_r, const uint64_t   uint64_given); 
+extern RETURN_TYPE_T decimal__cast_from_uintmax_r(      decimal_env_t * this, decimal_t * d_r, const uintmax_t uintmax_given); 
+extern RETURN_TYPE_T decimal__cast_from_int8_r   (      decimal_env_t * this, decimal_t * d_r, const int8_t       int8_given); 
+extern RETURN_TYPE_T decimal__cast_from_int16_r  (      decimal_env_t * this, decimal_t * d_r, const int16_t     int16_given); 
+extern RETURN_TYPE_T decimal__cast_from_int32_r  (      decimal_env_t * this, decimal_t * d_r, const int32_t     int32_given); 
+extern RETURN_TYPE_T decimal__cast_from_int64_r  (      decimal_env_t * this, decimal_t * d_r, const int64_t     int64_given); 
+extern RETURN_TYPE_T decimal__cast_from_intmax_r (      decimal_env_t * this, decimal_t * d_r, const intmax_t   intmax_given); 
+extern RETURN_TYPE_T decimal__cast_from_float_r      (      decimal_env_t * this, decimal_t * d_r, const float       f_given); 
+extern RETURN_TYPE_T decimal__cast_from_double_r     (      decimal_env_t * this, decimal_t * d_r, const double      f_given); 
+extern RETURN_TYPE_T decimal__cast_from_long_double_r(      decimal_env_t * this, decimal_t * d_r, const long double f_given); 
 
 extern RETURN_TYPE_T decimal__shift_right_by_r(decimal_env_t * this, decimal_t * d_r, const int16_t int16_shift_n); 
 extern RETURN_TYPE_T decimal__shift_left_by_r (decimal_env_t * this, decimal_t * d_r, const int16_t int16_shift_n); 

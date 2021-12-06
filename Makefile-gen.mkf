@@ -164,8 +164,8 @@ BISON_FLAGS :=
 #EDITLINE_CFLAGS := 
 #EDITLINE_LIBS :=  #build/libedit-20090923-3.0/libedit-20090923-3.0--sys_macosx--endian_little--debug_yes--opt_no--inline_no--gc_no--prof_no.a -ltermcap
 
-# For some floating operations ('floorf') 
-MATH_LIB__LIBS_FLAGS := -lm 
+# For some floating-point operations ('floorf') 
+MATH_LIB__LIBS_FLAGS := #-lm 
 
 TCC_LIBS := #-ltcc 
 
@@ -288,7 +288,7 @@ Makefile:
 	echo "" > $@
 #	echo "default: Makefile build run $(BIN)" >> $@
 #	echo "default: Makefile build $(LIB) $(BIN) run " >> $@
-	echo "default: Makefile build build_ci $(LIB) $(BIN) run " >> $@
+	echo "default: Makefile build build_ci build_i build_o $(LIB) $(BIN) run " >> $@
 	echo "" >> $@
 	echo "" >> $@
 	echo "" >> $@
@@ -441,6 +441,26 @@ Makefile:
 	echo "" >> $@
 	echo "" >> $@
 	echo "" >> $@
+	echo "" >> $@
+	echo "build_i: build $(patsubst src/%.c,build/%.i,$(wildcard src/*.c)) " >> $@; 
+	echo "" >> $@
+	$(foreach file_c,$(sort $(patsubst src/%,%,$(wildcard src/*.c)) $(patsubst src/%.y,%.tab.c,$(wildcard src/*.y)) $(patsubst src/%.y,%.code.c,$(wildcard src/*.y)) $(patsubst src/%.l,%.c,$(wildcard src/*.l)) $(patsubst src/%.ct,%.c,$(wildcard src/*.ct))), \
+	  $(foreach file_i,$(patsubst %.c,%.i,$(file_c)), \
+	  $(foreach file_h,$(patsubst %.c,%.h,$(file_c)), \
+	  $(foreach file_aux,$(patsubst %.c,%.aux,$(file_c)), \
+	      echo "build/$(file_i): build/$(file_c) $(patsubst src/%,build/%,$(wildcard src/lib*.ci)) $(patsubst %,build/%,$(shell cat src/$(file_c) | ./tools/bin/c-file-local-include-list)) " >> $@; \
+	      echo "	$(CC) $(CFLAGS) -E build/$(file_c) -o build/$(file_i)  2>&1" >> $@; \
+	      echo "" >> $@; \
+	    ) \
+	    ) \
+	  ) \
+	)
+	echo "" >> $@
+	echo "" >> $@
+	echo "" >> $@
+	echo "" >> $@
+	echo "" >> $@
+	echo "build_o: build $(patsubst src/%.c,build/%.o,$(wildcard src/*.c)) " >> $@; 
 	echo "" >> $@
 	$(foreach file_c,$(sort $(patsubst src/%,%,$(wildcard src/*.c)) $(patsubst src/%.y,%.tab.c,$(wildcard src/*.y)) $(patsubst src/%.y,%.code.c,$(wildcard src/*.y)) $(patsubst src/%.l,%.c,$(wildcard src/*.l)) $(patsubst src/%.ct,%.c,$(wildcard src/*.ct))), \
 	  $(foreach file_o,$(patsubst %.c,%.o,$(file_c)), \
