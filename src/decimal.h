@@ -334,7 +334,7 @@ enum {  DECIMAL_FIXED_POINT_SIZE =                200 };
 enum {  DECIMAL_SIZE             =                 32 }; // TODO XXX FIXME: On a 8-bit compiler, that gonna fail. 
 enum {  DECIMAL_FIXED_POINT_SIZE =                 12 }; 
 #endif 
-#define DECIMAL_BASE_MACRO                         20 
+#define DECIMAL_BASE_MACRO                         40 
 enum {  DECIMAL_BASE             = DECIMAL_BASE_MACRO }; 
 enum {  DECIMAL_BASE_MAX         =      UINT8_MAX - 1 }; 
 

@@ -32,8 +32,7 @@ static void decimal__conversion_matrix_from_internal_base_to_printing_base__vect
   for (index = 0; index < vector_len; index++) { 
     const uint16_t m1 = vector_src[index]; 
     if (m1 == DECIMAL_EOF_BYTE) goto label__propagate_carry_forward; 
-    const uint16_t m2 = printing_base; 
-    const uint16_t m3 = m1 * m2 + ((uint16_t) carry_forward); 
+    const uint16_t m3 = m1 * scalar + ((uint16_t) carry_forward); 
     vector_dst[index] = m3 % printing_base; 
     carry_forward     = m3 / printing_base; 
   }; 
@@ -55,7 +54,7 @@ static void decimal__conversion_matrix_from_internal_base_to_printing_base__vect
 
 static void decimal__conversion_matrix_from_internal_base_to_printing_base__vector_scalar_div(decimal_env_t * decimal_env, const uint8_t printing_base, const uint8_t scalar, const uint8_t vector_len_given, const uint8_t * vector_src, uint8_t * vector_dst) { 
 
-#if 1 
+#if 0 
   { 
     dputs_array(STDERR_FILENO, "vector_src{", int_string__stack(vector_len_given), "} = ["); 
     for (uint8_t j = 0; j < vector_len_given; j++) { 
@@ -77,7 +76,7 @@ static void decimal__conversion_matrix_from_internal_base_to_printing_base__vect
     break; 
   }; 
 
-  dputs_array(STDERR_FILENO, "vector_len = ", int_string__stack(vector_len), "\n"); 
+  //dputs_array(STDERR_FILENO, "vector_len = ", int_string__stack(vector_len), "\n"); 
   
   bzero(vector_dst + vector_len, vector_len_given - vector_len); 
   
@@ -85,7 +84,7 @@ static void decimal__conversion_matrix_from_internal_base_to_printing_base__vect
   uint8_t vector_i = vector_len - 1; 
     
   for (;;) { 
-    dputs_array(STDERR_FILENO, "carry_backward = ", int_string__stack(carry_backward), "\n"); 
+    //dputs_array(STDERR_FILENO, "carry_backward = ", int_string__stack(carry_backward), "\n"); 
     const uint8_t digit = *(vector_src + vector_i); 
     if (digit == DECIMAL_EOF_BYTE) goto label__propagate_carry_backward; 
     const uint16_t actual_digit = (((uint16_t) carry_backward) * ((uint16_t) printing_base)) + ((uint16_t) digit); 
@@ -107,7 +106,7 @@ static void decimal__conversion_matrix_from_internal_base_to_printing_base__vect
 
  label__propagate_carry_backward: { 
     for (;;) { 
-      dputs_array(STDERR_FILENO, "carry_backward = ", int_string__stack(carry_backward), "\n"); 
+      //dputs_array(STDERR_FILENO, "carry_backward = ", int_string__stack(carry_backward), "\n"); 
       if (0 == carry_backward) break; 
       const uint16_t actual_digit = (((uint16_t) carry_backward) * ((uint16_t) printing_base)); 
       *(vector_dst + vector_i) = actual_digit / scalar; 
@@ -123,6 +122,173 @@ static void decimal__conversion_matrix_from_internal_base_to_printing_base__vect
 
 
 
+
+// Pour déterminer le nombre de chiffres de la partie entière, 
+// il faut considérer la formule B2^(n2+1) > B1^n1 > B2^n2 
+// soit (n2+1) log(B2) > n1 log(B1) > n2 log(B2) 
+// soit (n2+1) > n1 log(B1)/log(B2) > n2 
+// et donc c'est la formule ln(B1)/ln(B2). 
+// 
+// Pour le nombre de chiffres de la partie décimale, c'est plus compliqué. 
+// Les chiffres devant la base suivent la même logique du ln(B1)/ln(B2). 
+// En revanche, pour la base, nous avons un problème dû au fait que 
+// B1 n'est pas forcément un diviseur de B2, 
+// auquel cas le développement décimal de 1/B1 dans la base B2 
+// n'est pas fini. Par exemple, 0,1 dans la base 3 correspond au nombre 
+// 1/3, lequel s'écrit 0,333333… dans la base 10. 
+// Et donc, par exemple, 0,2 dans la base 3 s'écrit 0,666666… dans la base 10. 
+// La formule log(B1)/log(B2) est bien respecté pour les chiffres, 
+// seulement, pour la base elle-même, on peut avoir quelque chose de long. 
+// 
+// Donc, dans de tels cas, pas le choix, il faudra faire des arrondis. 
+// Il faut donc se mettre d'accord sur les arrondis. 
+// Dans la division de B1 par B2, on a d'abord le manche puis le cycle. 
+// Voilà la longueur proposée pour écrire 1/B1 dans B2: 
+//  longueur du manche + longueur du cyle + 3 
+// 
+// Ensuite, la longueur du manche et la longueur du cycle, ensemble, 
+// dépendent de la suite des restes, et chaque reste est inférieur au 
+// diviseur, donc le nombre de restes est inférieur au diviseur, et donc 
+// ces deux longueurs additionnées est inférieure au diviseur. 
+// La base maximale étant 254, le diviseur maximal est 254, et donc la
+// 
+// Quelques longueurs en base 10: 
+//  1/254 → 2 +  42 =  44 
+//  1/253 → 2 +  22 =  24 
+//  1/252 → 3 +   6 =   9 
+//  1/251 → 2 +  50 =  52 
+//  1/250 → 1 +   4 =   5 
+//  1/249 → 2 +  41 =  43 
+//  1/248 → 4 +  15 =  19 
+//  1/247 → 2 +  18 =  20 
+//  1/246 → 2 +   5 =   7 
+//  1/245 → 2 +  42 =  44 
+//  1/244 → 3 +  60 =  63 
+//  1/243 → 2 +  27 =  29 
+//  1/242 → 2 +  22 =  44 
+//  1/241 → 2 +  30 =  32 
+//  1/240 → 5 +   1 =   6 
+//  1/239 → 2 +   7 =  44 
+//  1/238 → 2 +  48 =  50 
+//  1/237 → 2 +  13 =  15 
+//  1/236 → 3 +  58 =  61 
+//  1/235 → 2 +  46 =  48 
+//  1/234 → 2 +   6 =   8 
+//  1/233 → 2 + 232 = 234  // En fait, 233, car j'ai compté le dernier reste une deuxième fois; donc la borne est atteinte. 
+//  1/232 → 4 +  28 =  32 
+//  1/231 → 2 +   6 =   8 
+//  1/230 → 2 +  22 =  24 
+//  1/229 → 2 + 228 = 230  // En fait, 229 — la borne est atteinte. 
+//  … 
+//
+// Donc la borne est atteinte en 233 et en 229. 
+// Notons que cette suite des restes n'est pas indépendante de la base: 
+//   b      = q1 x a + r1 
+//   r1 x B = q2 x a + r2 
+//   r2 x B = q3 x a + r3 
+//   … 
+//   soit b = a x (q1 + q2 / B + q3 / B^2 + …) 
+// Donc, si la suite des restes pour 254 est de longueur 44 en base 10, ce n'est pas forcément le cas dans une autre base. 
+// Par exemple, en base 2, nous avons 2+7: 1 / 254 = 0.0[0000001]+ 
+// 
+// De même pour la partie entière: 
+//   q1 = s1 x B + t1 
+//   s1 = s2 x B + t2 
+//   s2 = s3 x B + t3 
+//   … 
+//   soit b = a x (… + t3 x B^2 + t2 x B + t1 + q2 / B + q3 / B^2 + …) 
+// 
+// Notre problématique est l'écriture de 1/B dans la base d'arrivée, 
+// et cette écriture peut être de longueur B (atteint par 229 et 233 dans la base 10). 
+// 
+
+
+
+static void decimal__decimal_cyles_get(const uint8_t digit_to_be_inversed, const uint8_t base, const uint8_t digits_size, uint8_t * digits, uint8_t * digits_used_r) { 
+  if (NULL == digits_used_r) return; 
+  *digits_used_r = 0; 
+  if (base < 2) return; 
+  if (0 == digits_size) return; 
+  if (0 == digit_to_be_inversed) return; 
+  if (1 == digit_to_be_inversed) { 
+    *digits_used_r = 1; 
+    digits[0] = 1; 
+    return; 
+  }; 
+  
+  uint16_t dividende = 1; 
+  const uint8_t diviseur = digit_to_be_inversed; 
+  const uint8_t quotients_size = base; 
+  uint8_t quotients_array[quotients_size]; 
+  uint8_t quotients_len = 0; 
+  uint8_t quotient; 
+  uint8_t reste; 
+  const uint8_t restes_indices_size = diviseur; 
+  uint8_t restes_indices[restes_indices_size]; 
+  
+  memset(restes_indices, 255, sizeof(restes_indices)); 
+#if 0 
+  { 
+    const uint16_t tmp = ((uint16_t) dividende) * ((uint16_t) base); 
+    if (tmp <= 255) { 
+      restes_indices[tmp] = 0; 
+    }; 
+  }; 
+#endif 
+  
+  for (;;) { 
+#if 0 
+  { 
+    dputs_array(STDERR_FILENO, "restes_indices{", decimal__print_raw__digits[ARRAY_SIZE(restes_indices)], "} = ["); 
+    for (uint8_t j = 0; j < ARRAY_SIZE(restes_indices); j++) { 
+      const uint8_t digit = restes_indices[j]; 
+      dputs_array(STDERR_FILENO, *(decimal__print_raw__digits + digit), ", "); 
+    }; 
+    dputs_array(STDERR_FILENO, "]" "\n"); 
+  }; 
+#endif 
+    quotient  = (dividende / diviseur); 
+    reste     = (dividende % diviseur); 
+    //fprintf(stderr, "[DEBUG] quotient = %8u - reste = %8u " "\n", quotient, reste); 
+    quotients_array[quotients_len] = quotient; 
+    quotients_len++; 
+    assert(0 != quotients_len); 
+    if (0 == reste) goto label__reste_is_null; 
+    //fprintf(stderr, "[DEBUG] restes_indices[reste] = %8u " "\n", restes_indices[reste]); 
+    if (restes_indices[reste] != 255) goto label__cycle_found; 
+    restes_indices[reste] = quotients_len; 
+    dividende = ((uint16_t) reste) * ((uint16_t) base); 
+  }; 
+  
+  assert(false); 
+    
+ label__reste_is_null: { 
+    const uint8_t used_digits = MIN(quotients_len, digits_size); 
+    bcopy(quotients_array, digits, used_digits); 
+    *digits_used_r = used_digits; 
+    return; 
+  }; 
+  
+  assert(false); 
+  
+ label__cycle_found: { 
+    const uint8_t used_digits = MIN(quotients_len, digits_size); 
+    bcopy(quotients_array, digits, used_digits); 
+    const uint8_t extra_digits = MIN(MIN(2, quotients_len), digits_size - used_digits); 
+    bcopy(quotients_array, digits + used_digits, extra_digits); 
+    *digits_used_r = used_digits + extra_digits; 
+    return; 
+  }; 
+  
+  assert(false); 
+}; 
+
+
+
+
+
+
+
 static void decimal__conversion_matrix_from_internal_base_to_printing_base__compute(decimal_env_t * decimal_env, const uint8_t printing_base) { 
   assert(printing_base >= 2); 
   assert(printing_base <= DECIMAL_BASE_MAX); 
@@ -130,17 +296,75 @@ static void decimal__conversion_matrix_from_internal_base_to_printing_base__comp
   uint8_t * matrix = decimal__conversion_matrix_from_internal_base_to_printing_base[printing_base]; 
   if (NULL != matrix) return; 
   
+#if 1 
   static const uint8_t decimal_base__log2 = LOG2_OF_DECIMAL_BASE; 
   //const uint8_t printing_base__log2 = GET_LOG2_VALUE_AS_MACRO(printing_base); 
   //const uint8_t printing_base__log2 = GET_LOG2_VALUE_AS_ENUM(printing_base); 
   //const uint8_t printing_base__log2 = LOG2_POS(printing_base); 
   const uint8_t printing_base__log2 = UINT8_LOG2(printing_base); 
+  dputs_array(STDERR_FILENO, "decimal_base__log2 = ", int_string__stack(decimal_base__log2), "\n"); 
+  dputs_array(STDERR_FILENO, "printing_base__log2 = ", int_string__stack(printing_base__log2), "\n"); 
+  //const uint8_t ratio0 = decimal_base__log2 / printing_base__log2; 
+  
+  // Pour la taille de la partie décimale, nous avons besoin de connaître la 
+  // taille de 1/B1 dans la base B2. 
+  const uint8_t digits_size = 255; // À priori, borné par printing_base, mais bon. 
+  uint8_t digits[digits_size]; 
+  uint8_t digits_used; 
+  decimal__decimal_cyles_get(DECIMAL_BASE, printing_base, digits_size, digits, &digits_used); 
+  
+#if 1 
+  { 
+    dputs_array(STDERR_FILENO, "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" "\n"); 
+    dputs_array(STDERR_FILENO, "digits of 1/", decimal__print_raw__digits[DECIMAL_BASE], " in ", decimal__print_raw__digits[printing_base], " {", decimal__print_raw__digits[digits_used], "} = ["); 
+    for (uint8_t j = 0; j < digits_used; j++) { 
+      const uint8_t digit = digits[j]; 
+      dputs_array(STDERR_FILENO, *(decimal__print_raw__digits + digit), ", "); 
+    }; 
+    dputs_array(STDERR_FILENO, "]" "\n"); 
+    dputs_array(STDERR_FILENO, "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" "\n"); 
+  }; 
+#endif 
+    
+#if 1 
+  const uint16_t int_size          = 2 + (((uint16_t) decimal_base__log2) * ((uint16_t) DECIMAL_INT_SIZE        )) / ((uint16_t) printing_base__log2); 
+  const uint16_t fixed_point_size0 = (((uint16_t) 1 + decimal_base__log2) * ((uint16_t) DECIMAL_FIXED_POINT_SIZE)) / ((uint16_t) printing_base__log2); 
+  const uint16_t fixed_point_size1 = (((uint16_t) digits_used) * ((uint16_t) DECIMAL_FIXED_POINT_SIZE)); 
+  const uint16_t fixed_point_size  = digits_used + (((uint16_t) 1 + decimal_base__log2) * ((uint16_t) DECIMAL_FIXED_POINT_SIZE)) / ((uint16_t) printing_base__log2); 
+#elif 0 
+  const uint16_t fixed_point_size = (((uint16_t) 1 + decimal_base__log2) * ((uint16_t) DECIMAL_FIXED_POINT_SIZE)) / ((uint16_t) printing_base__log2); 
+  const uint16_t int_size         = 1 + (((uint16_t) decimal_base__log2) * ((uint16_t) DECIMAL_INT_SIZE        )) / ((uint16_t) printing_base__log2); 
+#elif 0 
+  const uint16_t fixed_point_size = (((uint16_t) decimal_base__log2) * ((uint16_t) DECIMAL_FIXED_POINT_SIZE)) / ((uint16_t) printing_base__log2); 
+  const uint16_t int_size         = (((uint16_t) decimal_base__log2) * ((uint16_t) DECIMAL_INT_SIZE        )) / ((uint16_t) printing_base__log2); 
+#endif 
+  const uint16_t len = int_size + fixed_point_size; 
+
+#else 
+#if 1 
+  static const uint8_t decimal_base__log2 = LOG2_OF_DECIMAL_BASE; 
+  //const uint8_t printing_base__log2 = GET_LOG2_VALUE_AS_MACRO(printing_base); 
+  //const uint8_t printing_base__log2 = GET_LOG2_VALUE_AS_ENUM(printing_base); 
+  //const uint8_t printing_base__log2 = LOG2_POS(printing_base); 
+  const uint8_t printing_base__log2 = UINT8_LOG2(printing_base); 
+  dputs_array(STDERR_FILENO, "decimal_base__log2 = ", int_string__stack(decimal_base__log2), "\n"); 
+  dputs_array(STDERR_FILENO, "printing_base__log2 = ", int_string__stack(printing_base__log2), "\n"); 
   const uint8_t ratio0 = (1 + decimal_base__log2) / printing_base__log2; 
+#else 
+  const uint8_t ratio0 = DECIMAL_BASE / printing_base; 
+#endif 
+  dputs_array(STDERR_FILENO, "ratio0 = ", int_string__stack(ratio0), "\n"); 
   const uint8_t ratio = (0 == ratio0) ? 1 : ratio0; 
   const uint16_t fixed_point_size = ((uint16_t) ratio) * ((uint16_t) DECIMAL_FIXED_POINT_SIZE); 
   const uint16_t int_size         = ((uint16_t) ratio) * ((uint16_t) DECIMAL_INT_SIZE); 
   const uint16_t len = int_size + fixed_point_size; 
+#endif 
+
   decimal__conversion_matrix_from_internal_base_to_printing_base__len[printing_base] = len; 
+
+  dputs_array(STDERR_FILENO, "fixed_point_size = ", int_string__stack(fixed_point_size), "\n"); 
+  dputs_array(STDERR_FILENO, "int_size         = ", int_string__stack(int_size), "\n"); 
+  dputs_array(STDERR_FILENO, "len              = ", int_string__stack(len), "\n"); 
   
   const uint32_t matrix_bytesize = sizeof(uint8_t) * len * DECIMAL_DIGITS_SIZE; 
   matrix = (uint8_t *) malloc(matrix_bytesize); 
@@ -153,13 +377,19 @@ static void decimal__conversion_matrix_from_internal_base_to_printing_base__comp
   //bzero(matrix, matrix_bytesize); 
   memset(matrix, DECIMAL_EOF_BYTE, matrix_bytesize); 
 #if 1 
-  matrix[DECIMAL_FIXED_POINT_SIZE * DECIMAL_DIGITS_SIZE + fixed_point_size] = 1; 
+  //matrix[DECIMAL_FIXED_POINT_SIZE * DECIMAL_DIGITS_SIZE + fixed_point_size] = 1; 
+  matrix[DECIMAL_FIXED_POINT_SIZE * len + fixed_point_size] = 1; 
 #else 
   matrix[DECIMAL_FIXED_POINT_SIZE][fixed_point_size] = 1; 
 #endif 
   for (uint8_t vector_i = DECIMAL_FIXED_POINT_SIZE + 1; vector_i < DECIMAL_DIGITS_SIZE; vector_i++) { 
+#if 1 
+    const uint16_t   current_vector_i = vector_i * len + fixed_point_size; 
+    const uint16_t  previous_vector_i = current_vector_i - len; 
+#else 
     const uint16_t   current_vector_i = vector_i * DECIMAL_DIGITS_SIZE + fixed_point_size; 
     const uint16_t  previous_vector_i = current_vector_i - DECIMAL_DIGITS_SIZE; 
+#endif 
     uint8_t       *  current_vector = &(matrix[ current_vector_i]); 
     const uint8_t * previous_vector = &(matrix[previous_vector_i]); 
     decimal__conversion_matrix_from_internal_base_to_printing_base__vector_scalar_mult(decimal_env, printing_base, DECIMAL_BASE, int_size, previous_vector, current_vector); 
@@ -167,8 +397,13 @@ static void decimal__conversion_matrix_from_internal_base_to_printing_base__comp
 
   // FLOAT PART 
   for (uint8_t vector_i = 0; vector_i < DECIMAL_FIXED_POINT_SIZE; vector_i++) { 
+#if 1 
+    const uint16_t   current_vector_i = (DECIMAL_FIXED_POINT_SIZE_MINUS1 - vector_i) * len; 
+    const uint16_t  previous_vector_i = current_vector_i + len; 
+#else 
     const uint16_t   current_vector_i = (DECIMAL_FIXED_POINT_SIZE_MINUS1 - vector_i) * DECIMAL_DIGITS_SIZE; 
     const uint16_t  previous_vector_i = current_vector_i + DECIMAL_DIGITS_SIZE; 
+#endif 
     uint8_t       *  current_vector   = &(matrix[ current_vector_i]); 
     const uint8_t * previous_vector   = &(matrix[previous_vector_i]); 
     decimal__conversion_matrix_from_internal_base_to_printing_base__vector_scalar_div(decimal_env, printing_base, DECIMAL_BASE, fixed_point_size + 1, previous_vector, current_vector); 
@@ -186,7 +421,8 @@ static void decimal__conversion_matrix_from_internal_base_to_printing_base__comp
 	dputs_array(STDERR_FILENO, "vector[", int_string__stack(i), "]{", int_string__stack(len), "} = ["); 
       }; 
       for (uint16_t j = 0; j < len; j++) { 
-	const uint16_t matrix_index = i * DECIMAL_DIGITS_SIZE + j; 
+	//const uint16_t matrix_index = i * DECIMAL_DIGITS_SIZE + j; 
+	const uint16_t matrix_index = i * len + j; 
 	const uint8_t  matrix_digit = matrix[matrix_index]; 
 #if 1 
 	dputs_array(STDERR_FILENO, *(decimal__print_raw__digits + matrix_digit), ", "); 

@@ -1311,7 +1311,7 @@ extern RETURN_TYPE_T decimal__cast_from_string_int_r(decimal_env_t * this, decim
 
 
  label__bases_are_different: { 
-    decimal__conversion_matrix_from_internal_base_to_printing_base__compute(decimal_env, /*printing_base*/int_cstr_base); 
+    decimal__conversion_matrix_from_internal_base_to_printing_base__compute(this, /*printing_base*/int_cstr_base); 
     goto label__exit_ok; 
   }; 
 
